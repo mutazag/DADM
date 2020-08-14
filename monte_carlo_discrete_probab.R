@@ -85,6 +85,7 @@ printresults(df$T2, 'T2')
 plot(ecdf(df$serial))
 plot(ecdf(df$parallel))
 plot(ecdf(df$parallel+df$serial))
+
 # https://www.youtube.com/watch?v=GduPrU0vIWE
 
 
@@ -98,3 +99,4 @@ plot(FT1)
 plot(FT2)
 
 summary.stepfun(FT1)
+
