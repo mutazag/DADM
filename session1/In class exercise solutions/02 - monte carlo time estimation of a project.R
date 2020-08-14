@@ -55,14 +55,66 @@ ttot
 #cost distribution
 hist(ttot)
 
+hist(ttot,probability = TRUE, ylim = c(0,1))
+lines(density(ttot))
+summary(ecdf(ttot))
+
+
+
+## save ecdf function for result
+Fn <- ecdf(ttot)
+Fn(140) # returns the percentile of x -> probablity to finish within t = 140
+hist(knots(Fn))
+hist(ttot)
+summary.stepfun(Fn)
+Fn(238)
+plot(Fn, verticals = TRUE, do.points = FALSE)
+plot(Fn)
 #mean, max, min and median cost
 mean(ttot)
 max(ttot)
 min(ttot)
 median(ttot)
 
+# create an interpolation function for results of ecdf 
+# https://r.789695.n4.nabble.com/Extracting-values-from-a-ecdf-empirical-cumulative-distribution-function-curve-td4679471.html 
+
+inv_ecdf <- function(f){
+        x <- environment(f)$x
+        y <- environment(f)$y
+        approxfun(y, x)
+}
+
+g <- inv_ecdf(Fn)
+g(0.5)
+g(.25)
+Fn(127.6065)
+
+# 90% likely completion date 
+g(.9)
+##
+plot(Fn , lwd = 2) ; mtext("lwd = 2", adj = 1)
+xx <- seq(1,300, by=10)
+y = .5
+x = g(y)
+
+points(x, y, col = "blue", )
+abline(v = x,h = y, lty = 2, col = "gray70")
+text(x=x-10,y=y, labels = paste('(',round(x,2),',',y,')'))
+# abline(h = y, lty = 2, col = "gray70")
+
+
+##
+plot(Fn , lwd = 2) ; mtext("lwd = 2", adj = 1)
+xx <- seq(1,300, by=10)
+points(xx, Fn(xx), col = "blue", )
+abline(v = xx, lty = 2, col = "gray70")
+abline(h = Fn(xx), lty = 2, col = "gray70")
 #standard deviation
 sd(ttot)
+
+
+
 
 #plot cdf
 plot(ecdf(ttot))
