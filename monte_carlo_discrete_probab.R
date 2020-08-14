@@ -18,7 +18,7 @@ generate_estimate_Training <- function(r){
   
 }
 
-## another method to generate samples from discrete distrubition 
+## another method to generate samples from discrete distribution 
 T1_sample = sample(x=c(2,3), size=1000, prob=c(.75,.25), replace = TRUE)
 Fsample = ecdf(T1_sample)
 summary(Fsample)
@@ -90,7 +90,7 @@ plot(ecdf(df$parallel+df$serial))
 
 
 Fserial <- ecdf(df$serial)
-Fparallel <- ecfg(df$parallel)
+Fparallel <- ecdf(df$parallel)
 FT1 <- ecdf(df$T1)
 FT2 <- ecdf(df$T2)
 
