@@ -18,6 +18,23 @@ generate_estimate_Training <- function(r){
   
 }
 
+## another method to generate samples from discrete distrubition 
+T1_sample = sample(x=c(2,3), size=1000, prob=c(.75,.25), replace = TRUE)
+Fsample = ecdf(T1_sample)
+summary(Fsample)
+T1_sample_x = environment(Fsample)$x
+T1_sample_y = environment(Fsample)$y
+plot(ecdf(T1_sample)) # correct
+hist(T1_sample, xlim=c(0,5), ylim=c(0,1000))
+summary(ecdf(T1_sample))
+summary.stepfun(Fsample)
+Fsample(0)
+Fsample(1.5)
+Fsample(2)
+Fsample(2.1)
+Fsample(2.9)
+Fsample(3)
+# old method
 results = c()
 
 T1 = c()
@@ -31,7 +48,9 @@ for (i in 1:1000){
 print( paste("2: ",  sum(results==2)/length(results)))
 print( paste("3: ",  sum(results==3)/length(results)))
 hist(results, ylim = c(0,length(results)), xlim=c(0,4))
-
+plot(ecdf(results))
+plot(ecdf(T1))
+plot(ecdf(T2))
 
 duration_serial = T1 + T2
 unique_duration = unique(duration_serial)
@@ -39,7 +58,7 @@ for (d in unique_duration){
   print(paste(d, sum(duration_serial==d) / length(duration_serial)))
 }
 hist(duration_serial, ylim = c(0,length(duration_serial)), xlim=c(0,10))
-
+plot(ecdf(duration_serial))
 
 df = data.frame(T1, T2) 
 df['serial'] = df$T1 + df$T2
@@ -62,4 +81,20 @@ printresults(df$serial, 'serial')
 printresults(df$parallel, 'parallel')
 printresults(df$T1, 'T1')
 printresults(df$T2, 'T2')
+
+plot(ecdf(df$serial))
+plot(ecdf(df$parallel))
+plot(ecdf(df$parallel+df$serial))
 # https://www.youtube.com/watch?v=GduPrU0vIWE
+
+
+Fserial <- ecdf(df$serial)
+Fparallel <- ecfg(df$parallel)
+FT1 <- ecdf(df$T1)
+FT2 <- ecdf(df$T2)
+
+
+plot(FT1)
+plot(FT2)
+
+summary.stepfun(FT1)
