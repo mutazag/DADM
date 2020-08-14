@@ -95,7 +95,7 @@ g(.9)
 ##
 plot(Fn , lwd = 2) ; mtext("lwd = 2", adj = 1)
 xx <- seq(1,300, by=10)
-y = .5
+y = .9
 x = g(y)
 
 points(x, y, col = "blue", )
@@ -130,4 +130,49 @@ quantile(ecdf(ttot),.59,type=7)
 
 
 
+#### late project gets later #### 
 
+
+plot(Fn , lwd = 2) ; mtext("lwd = 2", adj = 1)
+xx <- seq(1,300, by=10)
+y = seq(.9, 1, by = .02)
+x = g(y)
+
+data.frame(percentile=y, estimate_duration=x)
+
+points(x, y, col = "blue", )
+abline(v = x,h = y, lty = 2, col = "gray70")
+text(x=x-10,y=y, labels = paste('(',round(x,2),',',y,')'))
+
+
+
+y = seq(.5, .6, by = .02)
+x = g(y)
+
+data.frame(percentile=y, estimate_duration=x)
+
+
+
+#really late, 2 std out
+library(stats)
+
+std2_out = g(.5) + 2* sd(ttot)
+Fn(std2_out) ## is late 
+
+plot(density(ttot))
+abline(v=g(c(.5,.75,Fn(std2_out))))
+
+
+y = c(.5,.75,Fn(std2_out))
+x = g(y)
+      
+plot(Fn , lwd = 2) ; mtext("lwd = 2", adj = 1)
+points(x, y, col = "blue", pch=20)
+abline(v = x,h = y, lty = 2, col = "gray70")
+# text(x=x-10,y=y, labels = paste('(',round(x,2),',',y,')'))
+
+y = seq(Fn(std2_out), 1, by = (1-Fn(std2_out))/4)
+x = g(y)
+points(x, y, col = "red", pch = 20 )
+abline(v = x,h = y, lty = 2, col = "blue")
+# text(x=x-10,y=y-.1, labels = paste('(',round(x,2),',',y,')'))
