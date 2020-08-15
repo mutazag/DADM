@@ -2,8 +2,14 @@
 df_tasks = read.csv('tasks_durations.csv')
 print(df_tasks)
 
-# uniform random sampling for n runs
-n = 10000
+# setup uniform random sampling for n runs
+n = 1000
+# r = runif(n, min = 0, max = 1)
+# summary(r)
+# hist(r, breaks = 50, freq = FALSE)
+# plot(ecdf(r))
+
+
 
 #### Inverse Sampling Transform ####
 
@@ -12,11 +18,12 @@ n = 10000
 # a probability, and then returns the largest number x from the
 # domain of the distribution
 
-# inverse sampling functions for triangular and discrete distribution
+# here we will code inverse sampling functions for triangular and discrete
+# distribution
 
 inv_triangle_cdf <- function (P, vmin, vml, vmax){
   # inverse triangle cdf is used to translate probabilities based on triangular
-  # PDF, stuiable for 3-point estimate simulation
+  # PDF, stuiable for 3-point estimate simulation 
   Pvml <- (vml-vmin)/(vmax-vmin)
   
   return(ifelse(P < Pvml,
@@ -26,7 +33,7 @@ inv_triangle_cdf <- function (P, vmin, vml, vmax){
 
 inv_discrete_cdf <- function(P=runif(1000),  v=c(2,3), pmf=c(.75,.25)){
   # inverse discrete cdf is used to translate probabilities based on discrete
-  # distribution, PMF. suitable for simulating discrete estimates
+  # distribution, PMF, suitable simulating discrete estimates
   
   cdf=cumsum(pmf)
 
@@ -35,7 +42,7 @@ inv_discrete_cdf <- function(P=runif(1000),  v=c(2,3), pmf=c(.75,.25)){
 }
 
 inv_discrete2_cdf <- function(n=1000, v=c(2,3), pmf=c(.75,.25)){
-  # this function approaches the sampling of discrete values  differently,
+  # this function approaches the sampling of discrete values based differently,
   # it will generate n samples of values v from the discrete distribution
   # specified by pmf
   
@@ -68,10 +75,12 @@ test_inv_discrete_cdf_functions <-function(trials=1000, invFn = "inv_discrete_cd
 
 #### run the simulation ####
 
+
+
 #create data frame with rows = number of trials and cols = number of tasks
 tsim <- as.data.frame(matrix(nrow=n,ncol=nrow(df_tasks)))
 
-# for each task, simulate values using the appropriate inverse sampling method
+# for each task
 for (i in 1:nrow(df_tasks)){
   
   s = sprintf("i: %s, Task: %s, estimate type = %s", i, 
@@ -104,12 +113,60 @@ for (i in 1:nrow(df_tasks)){
     
 }
 
+# replace v5 with discrete2 sampling function 
+tsim$V6 = inv_discrete2_cdf(n)
+
+
+
+  # print(df_tasks[i]$task)
+  # #set task costs
+  # vmin <- task_durations$tmin[i]
+  # vml <- task_durations$tml[i]
+  # vmax <- task_durations$tmax[i]
+  # 
+  # #generate n random numbers (one per trial)
+  # psim <- runif(n)
+  # #simulate n instances of task
+  # tsim[,i] <- inv_triangle_cdf(psim,vmin,vml,vmax) 
+
+hist(tsim$V1, breaks=50, probability = TRUE)
+lines(density(tsim$V1))
+plot(ecdf(tsim$V1))
+
+
+hist(tsim$V5, probability = TRUE, xlim=c(0,4))
+plot(ecdf(tsim$V5))
+summary(ecdf(tsim$V5))
+sum(tsim$V5==2)
+hist(tsim$V6, probability = TRUE, xlim=c(0,4))
+plot(ecdf(tsim$V6))
+summary(ecdf(tsim$V6))
+sum(tsim$V6==2)
+
+
+plot(ecdf(tsim$V5), col="red")
+lines(ecdf(tsim$V6))
+
+
+
 # Calculate total project duration, from sequence diagram
 # project_duration = T1 + max(T2, T3) + T4 + T5
 
 tsim["total_duration"] = tsim$V1 + pmax(tsim$V2, tsim$V3) + tsim$V4 + tsim$V5
+tsim["total_duration2"] = tsim$V1 + pmax(tsim$V2, tsim$V3) + tsim$V4 + tsim$V6
 
-#### calc of project duration using simple arithmeitc on min, ml and max values ####
+hist(tsim$total_duration, breaks=50, probability = TRUE)
+lines(density(tsim$total_duration))
+plot(ecdf(tsim$total_duration))
+
+hist(tsim$total_duration2, breaks=50, probability = TRUE)
+lines(density(tsim$total_duration2))
+plot(ecdf(tsim$total_duration2), xlim=c(0,40))
+lines(ecdf(tsim$total_duration), col="red")
+lines(ecdf(tsim$V5))
+
+
+#### driect calc of project duration based on min, ml and max ####
 
 d_mins = append(df_tasks[1:4,]$v1, df_tasks[5,]$v1)
 d_mls = append(df_tasks[1:4,]$v2, df_tasks[5,]$v1)
@@ -120,49 +177,16 @@ project_duration <- function(tasks_d){
   
 }
 
-project_min_all = project_duration(d_mins)
-project_ml_all  = project_duration(d_mls)
-project_max_all = project_duration(d_max)
+project_duration(d_mins)
+project_duration(d_mls)
+project_duration(d_max)
 
 
 #### analyse results ####
 
 Fx <- ecdf(tsim$total_duration)
-qq = quantile(ecdf(tsim$total_duration),c(0.05,0.5,0.9,.95,1),type=7)
+quantile(ecdf(tsim$total_duration),c(0.05,0.5,0.9,.95,1),type=7)
 Fx(project_duration(d_mins))
 Fx(project_duration(d_mls))
 Fx(project_duration(d_max))
 Fx(27)
-
-print(paste0("probability to finish in ", project_min_all, "d is ", Fx(project_min_all)))
-print(paste0("probability to finish in ", project_ml_all, "d is ", Fx(project_ml_all)))
-print(paste0("probability to finish in ", project_max_all, "d is ", Fx(project_max_all)))
-
-
-print(paste0("probability to finish in ", 27, "d is ", Fx(27)))
-
-print(paste0("90% likely completion time is ", qq["90%"], "d "))
-
-
-#### plots ####
-
-
-
-hist(tsim$total_duration, breaks=50, probability = TRUE, 
-     main = "Project Duration PDF", xlab="estimated duration",
-     xlim=c(19,40))
-lines(density(tsim$total_duration), lwd=2)
-plot(ecdf(tsim$total_duration), main = "Project Duration CDF",ylab = "likelihood", xlab="estimated duration")
-x = qq['90%']
-y = .9
-abline(v=x, h=y, col = "lightgray")      
-points(x,y,  col = "red", pch=20)
-text(x=x+2,y=y, labels = paste('(',round(x,2),',',round(y,2)*100,'%)'))
-x = 27
-y = Fx(27)
-abline(v=x, h=y, col = "lightgray")      
-points(x,y,  col = "blue", pch=20)
-text(x=x+2,y=y, labels = paste('(',round(x,2),',',round(y,2)*100,'%)'))
-
-
-
