@@ -2,6 +2,11 @@
 df_tasks = read.csv('tasks_durations.csv')
 print(df_tasks)
 
+
+# shift most likely estaimtes for early tasks half way closer to v3
+df_tasks[1:3,]$v2 = (df_tasks[1:3,]$v3 + df_tasks[1:3,]$v2)/2
+
+
 # uniform random sampling for n runs
 n = 10000
 
