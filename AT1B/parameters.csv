@@ -1,0 +1,16 @@
+cat,param,type,vmin,vml,vmax,uom,description
+price_change,year1,1-point,2500,0,0,AUD,price for year 1
+price_change,year2,3-point,-150,150,300,AUD,price change for year 2
+price_change,year3,3-point,-150,150,300,AUD,price change for year 3
+price_change,year4,3-point,-150,150,300,AUD,price change for year 4
+price_change,year5,3-point,-150,150,300,AUD,price change for year 5
+new_claim,predicted,3-point,50,800,1500,ounce,geologist predicted claim output
+new_claim,change_yoy,3-point,-0.1,0.3,0.7,percentage,claim output change on preceding year
+new_claim,cost_ops,3-point,500000,850000,1100000,AUD,fix operations cost per year
+new_claim,cost_sales,1-point,0.35,0,0,percentage,expense cost of sales
+legal,cost_annual,3-point,500000,750000,1000000,AUD,legal councel cost per year
+legal,resolve_in_favour,1-point,0.4,0,0,likelihood,likelihod to resolve case in favour
+future_claim,cost_partner,1-point,400000,0,0,AUD,partner team cost per annum per claim
+future_claim,chance,1-point,0.15,0,0,likelihood,chance of discovery for each team
+future_claim,limit,1-point,1,0,0,limit,claim discovery in exploration area
+simulation,n_trials,1-point,10000,0,0,number of trials in simulation
