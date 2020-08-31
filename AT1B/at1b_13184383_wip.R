@@ -123,6 +123,13 @@ for (i in 2:5){
 grid.arrange(plots[[1]], plots[[2]], plots[[3]], plots[[4]], nrow=4)
 
 
+price_simulation %>% pivot_longer(
+  cols=c(year1, year2, year3, year4, year5), 
+  names_to='year', 
+  values_to='price') %>% ggplot() + 
+  geom_boxplot(aes(y=price, x=year))
+
+
 #### simulate new claim output year over year ####
 v_claim <- sim_params %>% filter(cat == 'new_claim')
 
@@ -175,5 +182,49 @@ output_simulation %>% pivot_longer(
   cols=c(year1, year2, year3, year4, year5), 
   names_to='year', 
   values_to='output') %>% ggplot() + 
-  geom_boxplot(aes(y=output, x=year))
+  geom_boxplot(aes(y=output, x=year)) + 
+  labs(title = 'output simulation')
   
+
+#### simulate revenue for 5 years #### 
+
+price_simulation %>% head()
+output_simulation %>% head()
+
+
+
+v_claim <- sim_params %>% filter(cat == 'new_claim')
+claim_cost_ops <- v_claim %>% filter(param == 'cost_ops') %>% select(vmin, vml, vmax)
+claim_cost_sales <- v_claim %>% filter(param == 'cost_sales') %>% select(vmin) %>% first()
+
+revenue1_simulation <- data.frame(year1=rep(0,n_trials))
+fixedcost_simulation <- data.frame(year1=rep(0,n_trials))
+
+revenue1_simulation %>% head()
+fixedcost_simulation %>% head()
+
+for (i in 1:5){
+  yearn_label = paste0( 'year', i)
+  
+  fixedcost_simulation[yearn_label] <- inv_triangle_cdf(
+      P=runif(n_trials), 
+      vmin=claim_cost_ops$vmin,
+      vml=claim_cost_ops$vml,
+      vmax=claim_cost_ops$vmax)
+  
+  revenue1_simulation[yearn_label] <- 
+    ((1-claim_cost_sales) * output_simulation[yearn_label] * price_simulation[yearn_label]) - fixedcost_simulation[yearn_label]
+}
+
+
+revenue1_simulation %>% pivot_longer(
+  cols=c(year1, year2, year3, year4, year5), 
+  names_to='year', 
+  values_to='revenue1') %>% ggplot() + 
+  geom_boxplot(aes(y=revenue1, x=year)) + 
+  labs(title = 'revenue1 simulation') + 
+  scale_y_continuous(labels = scales::comma, limits= c(-10000,4000000)) 
+
+
+min(revenue1_simulation)
+
