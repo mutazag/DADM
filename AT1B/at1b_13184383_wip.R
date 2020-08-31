@@ -123,3 +123,22 @@ for (i in 2:5){
 
 grid.arrange(plots[[1]], plots[[2]], plots[[3]], plots[[4]], nrow=4)
 
+
+#### simulate new claim output year over year ####
+v_claim <- sim_params %>% filter(cat == 'new_claim')
+
+claim_year1_output_estimate <- v_claim %>% filter(param == 'predicted') %>% select(vmin, vml, vmax)
+claim_year_on_year_change <- v_claim %>% filter(param == 'change_yoy') %>% select(vmin, vml, vmax)
+claim_cost_ops <- v_claim %>% filter(param == 'cost_ops') %>% select(vmin, vml, vmax)
+claim_cost_sales <- v_claim %>% filter(param == 'cost_sales') %>% select(vmin, vml, vmax) %>% first()
+
+
+output_simulation <- data.frame(
+  year1= inv_triangle_cdf(
+    P=runif(n_trials), 
+    vmin=claim_year1_output_estimate$vmin,
+    vml=claim_year1_output_estimate$vml,
+    vmax=claim_year1_output_estimate$vmax))
+
+
+plot_distribution(output_simulation$year1, label='year1 output')

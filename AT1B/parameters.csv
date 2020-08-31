@@ -4,7 +4,7 @@ price_change,year2,3-point,-150,150,300,AUD,price change for year 2
 price_change,year3,3-point,-150,150,300,AUD,price change for year 3
 price_change,year4,3-point,-150,150,300,AUD,price change for year 4
 price_change,year5,3-point,-150,150,300,AUD,price change for year 5
-new_claim,predicted,3-point,50,800,1500,ounce,geologist predicted claim output
+new_claim,predicted,3-point,50,800,1500,ounce,geologist predicted claim output for year1
 new_claim,change_yoy,3-point,-0.1,0.3,0.7,percentage,claim output change on preceding year
 new_claim,cost_ops,3-point,500000,850000,1100000,AUD,fix operations cost per year
 new_claim,cost_sales,1-point,0.35,0,0,percentage,expense cost of sales
