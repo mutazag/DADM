@@ -97,7 +97,6 @@ price_simulation <- data.frame(year1= rep((v %>% filter(year == 'year1'))$vmin, 
 price_simulation %>% head()
 
 
-
 for ( i in 2:5){
   yearn_label = paste0( 'year', i)
   yearn_prev = paste0( 'year', i-1)
@@ -141,4 +140,40 @@ output_simulation <- data.frame(
     vmax=claim_year1_output_estimate$vmax))
 
 
-plot_distribution(output_simulation$year1, label='year1 output')
+output_simulation %>% head()
+
+
+for ( i in 2:5){
+  yearn_label = paste0( 'year', i)
+  yearn_prev = paste0( 'year', i-1)
+  yearn <- claim_year_on_year_change
+  
+  output_change <-  inv_triangle_cdf(
+    P = runif(n_trials), 
+    vmin = yearn$vmin, 
+    vml = yearn$vml,
+    vmax = yearn$vmax)
+  
+  output_simulation[yearn_label] <- output_simulation[yearn_prev] * (1+output_change) %>% round(digits=2)
+  # 
+  # price_simulation %>% glimpse()
+  
+}
+
+
+plots <- list()
+xlim <- c(min(output_simulation), max(output_simulation))
+for (i in 1:5){
+  yearn_label = paste0( 'year', i)
+  plots[[yearn_label]] <- plot_distribution(output_simulation[[yearn_label]], label = yearn_label) + lims(x=xlim)
+}
+
+grid.arrange(plots[['year1']], plots[['year2']], plots[['year3']], plots[['year4']], plots[['year5']], nrow=5)
+
+
+output_simulation %>% pivot_longer(
+  cols=c(year1, year2, year3, year4, year5), 
+  names_to='year', 
+  values_to='output') %>% ggplot() + 
+  geom_boxplot(aes(y=output, x=year))
+  
