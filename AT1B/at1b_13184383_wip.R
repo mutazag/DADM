@@ -3,6 +3,7 @@
 # 13184383
 
 library(tidyverse)
+library(gridExtra)
 
 #### Inverse Sampling Transform ####
 
@@ -76,33 +77,6 @@ test_inv_triangle_cdf <- function(
   samples = get(invFn)(P= P, vmin = vmin, vml = vml, vmax = vmax)
   distro_plot <- plot_distribution(samples = samples, label = invFn, hist_breaks = 50)
   distro_plot()
-  
-  # samples_summary = round(summary(samples),2)
-  # samples_summary['sd'] = round(sd(samples),2)
-  # samples_summary['var'] = round(var(samples), 2)
-  # samples_density = density(samples)
-  # 
-  # hist(samples,breaks = hist_breaks, probability = TRUE,
-  #      main = paste0("Density of value in trials - ", invFn),
-  #      xlab="Simulated value")
-  # lines(x = samples_density, col='black', lwd=2)
-  # abline(v=samples_summary["Median"], lty = 2, lwd=2, col = "grey80")
-  # abline(v=samples_summary["Mean"], lty = 2, lwd=2, col = "blue")
-  # abline(v = samples_summary["Mean"]+samples_summary['sd'], col='blue3', lwd=1, lty=2)
-  # abline(v = samples_summary["Mean"]-samples_summary['sd'], col='blue3', lwd=1, lty=2)
-  # abline(v = samples_summary["Mean"]-2*samples_summary['sd'], col='skyblue', lwd=1, lty=2)
-  # abline(v = samples_summary["Mean"]+2*samples_summary['sd'], col='skyblue', lwd=1, lty=2)
-  # text(
-  #   x = samples_density$x[which.max(samples_density$y)] + samples_summary['sd']/2, 
-  #   y = max(samples_density$y),
-  #   labels = paste0('vmax: ', round(samples_density$x[which.max(samples_density$y)])))
-  # points(
-  #   x = samples_density$x[which.max(samples_density$y)], 
-  #   y = max(samples_density$y), 
-  #   lwd = 2 )
-  # title(sub = paste("Mean (in blue) ", samples_summary["Mean"]))
-  # print(samples_summary)
-  # print(paste0('simulated vmax: ', round(samples_density$x[which.max(samples_density$y)])))
 }
 
 
@@ -120,15 +94,32 @@ print(v)
 
 price_simulation <- data.frame(year1= rep((v %>% filter(year == 'year1'))$vmin, n_trials))
 
-i = 2
-yearn_label = paste0( 'year', i)
-yearn_prev = paste0( 'year', i-1)
-yearn <- v %>% filter(year == year_label)
+price_simulation %>% head()
 
-price_simulation[year_label] <- price_simulation[yearn_prev] + inv_triangle_cdf(
-  P = runif(n_trials), 
-  vmin = yearn$vmin, 
-  vml = yearn$vml,
-  vmax = yearn$vmax) %>% round(digits=2)
 
-price_simulation %>% glimpse()
+
+for ( i in 2:5){
+  yearn_label = paste0( 'year', i)
+  yearn_prev = paste0( 'year', i-1)
+  yearn <- v %>% filter(year == yearn_label)
+  
+  price_simulation[yearn_label] <- price_simulation[yearn_prev] + inv_triangle_cdf(
+    P = runif(n_trials), 
+    vmin = yearn$vmin, 
+    vml = yearn$vml,
+    vmax = yearn$vmax) %>% round(digits=2)
+  # 
+  # price_simulation %>% glimpse()
+
+}
+
+
+plots <- list()
+xlim <- c(min(price_simulation), max(price_simulation))
+for (i in 2:5){
+  yearn_label = paste0( 'year', i)
+  plots[[yearn_label]] <- plot_distribution(price_simulation[[yearn_label]], label = yearn_label) + lims(x=xlim)
+  }
+
+grid.arrange(plots[[1]], plots[[2]], plots[[3]], plots[[4]], nrow=4)
+
