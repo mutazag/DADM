@@ -119,7 +119,6 @@ for (i in 2:5){
   yearn_label = paste0( 'year', i)
   plots[[yearn_label]] <- plot_distribution(price_simulation[[yearn_label]], label = yearn_label) + lims(x=xlim)
   }
-
 grid.arrange(plots[[1]], plots[[2]], plots[[3]], plots[[4]], nrow=4)
 
 
@@ -227,4 +226,80 @@ revenue1_simulation %>% pivot_longer(
 
 
 min(revenue1_simulation)
+
+
+price_simulation %>% head()
+output_simulation %>% head()
+revenue1_simulation %>% head()
+
+## inverse cdf to answer questions like:  what is the likelihood that my revenue
+## by end of 5 years is 16Mil
+
+
+#### legal battle ####
+
+#simulate winning or losing for each trial with  .4 prob winning
+
+sum(sample(x=c(T,F), size=10000, replace=TRUE, prob=c(.4,.6)))
+sum(rbinom(n=10000,size=1,prob=.4))
+
+
+# simulate probaility to win (T/F) 
+
+# simulate legal cost 
+
+# subtract legal cost from gross for year if not yet tried
+# zero out yearly revenue after year of trying if win probability is false
+
+#legal simulation parametrs
+v_legal <- sim_params %>% filter(cat == 'legal')
+legal_cost_annual <- v_legal %>% filter(param=='cost_annual') %>% select(vmin, vml, vmax)
+legal_resolve_in_favor <- v_legal %>% filter(param=='resolve_in_favor') %>% select(vmin) %>% first()
+
+# initialise legal simulation results 
+legal_cost_simulation <- data.frame(year1=rep(0,n_trials))
+legal_resolve_in_favor_simulation <- data.frame(year1=rep(0,n_trials))
+# legal resolve is simulated for every year independently but only used once
+# based on strategy to resolve or not for a given year
+
+for (i in 1:5){
+  yearn_label = paste0( 'year', i)
+  
+  legal_cost_simulation[yearn_label] <- inv_triangle_cdf(
+    P=runif(n_trials), 
+    vmin=legal_cost_annual$vmin,
+    vml=legal_cost_annual$vml,
+    vmax=legal_cost_annual$vmax)
+  
+  legal_resolve_in_favor_simulation[yearn_label] <- rbinom(n=n_trials, size=1, prob=legal_resolve_in_favor)
+ 
+}
+
+# plot legal cost simuation results
+legal_cost_simulation %>% pivot_longer(
+  cols=c(year1, year2, year3, year4, year5), 
+  names_to='year', 
+  values_to='legal_cost') %>% ggplot() + 
+  geom_boxplot(aes(y=legal_cost, x=year)) + 
+  labs(title = 'legal_cost simulation') + 
+  scale_y_continuous(labels = scales::comma, limits= c(500000,1000000)) 
+
+
+
+legal_cost_simulation[1:100,] %>% mutate(i=row_number()) %>% pivot_longer(
+    cols=c(year1, year2, year3, year4, year5), 
+    names_to='year', 
+    values_to='legal_cost') %>%
+  ggplot(aes(x=i)) + geom_line(aes(y=legal_cost, col=year), lwd=1) + 
+  scale_y_continuous(labels = scales::comma, limits= c(500000,1000000)) 
+
+
+xlim <- c(min(legal_cost_simulation), max(legal_cost_simulation))
+for (i in 1:5){
+  yearn_label = paste0( 'year', i)
+  plots[[yearn_label]] <- plot_distribution(legal_cost_simulation[[yearn_label]], label = yearn_label) + lims(x=xlim)
+}
+grid.arrange(plots[[1]], plots[[2]], plots[[3]], plots[[4]],plots[[5]], nrow=5)
+
+legal_resolve_in_favor_simulation %>% summarise_all(sum)
 
