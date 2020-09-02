@@ -360,12 +360,14 @@ future_claim_partner_cost <- v %>% filter(param == 'cost_partner') %>% select(vm
 
 future_claim_simulation_team1 <- data.frame(year1=rep(0,n_trials))
 future_claim_simulation_team2 <- data.frame(year1=rep(0,n_trials))
+future_claim_simulation_team1or2 <-data.frame(year1=rep(0,n_trials))
 
 # simulates chance for one exploration team
 for (i in 1:5){ 
   yearn_label = paste0('year',i)
   future_claim_simulation_team1[yearn_label] <- rbinom(n=n_trials, size=1, prob=future_claim_chance)
   future_claim_simulation_team2[yearn_label] <- rbinom(n=n_trials, size=1, prob=future_claim_chance)
+  future_claim_simulation_team1or2[yearn_label] <- rbinom(n=n_trials, size=1, prob = future_claim_chance + future_claim_chance) # mutually execlusive 
 }
 
 future_claim_simulation_all_teams <- (
@@ -379,10 +381,12 @@ future_claim_simulation_all_teams <- (
 
 future_claim_simulation_team1 %>% head()
 future_claim_simulation_team2 %>% head()
+future_claim_simulation_team1or2 %>% head()
 future_claim_simulation_all_teams %>% head()
 
 future_claim_simulation_team1 %>% summarise_all(sum)
 future_claim_simulation_team2 %>% summarise_all(sum)
+future_claim_simulation_team1or2 %>% summarise_all(sum)
 future_claim_simulation_all_teams %>% summarise_all(sum)
 
 
@@ -425,3 +429,37 @@ discovery_year %>%
 claim_discovery_year_simulation_team2 %>% ggplot(aes(x=discovery_year)) + geom_histogram()
 claim_discovery_year_simulation_all_teams %>% ggplot(aes(x=discovery_year)) + geom_histogram()
 
+discovery_year %>% summarise_all(sum)
+
+
+
+#### ecdf ####
+
+
+
+price_simulation %>% head()
+output_simulation %>% head()
+revenue1_simulation %>% head()
+
+revenue1_simulation <- revenue1_simulation %>% mutate(five_years = year1+year2+year3+year4+year5)
+revenue1_simulation %>% ggplot(aes(x=five_years)) + geom_density() + 
+  scale_x_continuous(labels = scales::comma)
+
+ecdf_revenue_fx <- ecdf(revenue1_simulation$five_years)
+summary(ecdf_revenue_fx)
+plot(ecdf_revenue_fx)
+
+revenue1_simulation %>% ggplot() + stat_ecdf(aes(year1)) +
+  stat_ecdf(aes(year2)) + 
+  scale_x_continuous(labels = scales::comma)
+
+
+revenue1_simulation  %>% pivot_longer(cols = 1:6, names_to='year', values_to='revenue') %>% 
+  ggplot() + stat_ecdf(aes(x=revenue,col=year)) + # + facet_wrap(year~.)
+    scale_x_continuous(labels = scales::comma)
+
+quantile(ecdf_revenue_fx, c(.025, .975), type=7) # 95% confidence
+quantile(ecdf_revenue_fx, c(.05, .95), type=7) # 90% confidence
+quantile(ecdf_revenue_fx, c(.5), type=7) # 50% likley
+ecdf_revenue_fx(17e+06) #end with 17mil
+ecdf_revenue_fx(0) #end with 17mil
