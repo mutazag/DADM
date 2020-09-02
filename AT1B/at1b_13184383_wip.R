@@ -122,6 +122,42 @@ for (i in 2:5){
 grid.arrange(plots[[1]], plots[[2]], plots[[3]], plots[[4]], nrow=4)
 
 
+
+summary_price <- price_simulation %>% 
+  pivot_longer(cols = year1:year5, names_to='year', values_to='value' )%>% 
+  group_by(year) %>% 
+  summarise(median = median(value), sd = sd(value), mean = mean(value))
+
+
+price_simulation %>% 
+  pivot_longer(cols = year1:year5, names_to='year', values_to='value' )%>% ggplot() + 
+  # geom_histogram(aes(x=value, color=year, fill=year, after_stat(density)), bins=50 ) +
+  geom_density(aes(x = value, color=year, fill=year),alpha=0.3,size=1, lwd=1) + 
+  geom_vline(aes(xintercept=mean(year)),lty = 2, lwd=1)  +
+  geom_vline(data=summary_price, aes(xintercept=median+sd), col='blue3', lwd=1, lty=2) +
+  geom_vline(data=summary_price, aes(xintercept=median-sd), col='blue3', lwd=1, lty=2) +
+  geom_vline(data=summary_price, aes(xintercept=median+2*sd), col='skyblue', lwd=1, lty=2) +
+  geom_vline(data=summary_price, aes(xintercept=median-2*sd), col='skyblue', lwd=1, lty=2) +
+  geom_vline(data=summary_price, aes(xintercept=mean), col='grey80', lty = 2, lwd=1) +
+  geom_vline(data=summary_price, aes(xintercept=median), col='grey20', lty = 2, lwd=1) +
+  # annotate(
+  #   geom = 'text', 
+  #   x = samples_density$x[which.max(samples_density$y)] + samples_summary['sd']/2, 
+  #   y = max(samples_density$y),
+  #   label = paste0('vmax: ', round(samples_density$x[which.max(samples_density$y)]))) +
+  # annotate(
+  #   geom = 'point', 
+  #   x = samples_density$x[which.max(samples_density$y)], 
+  #   y = max(samples_density$y), 
+  #   lwd = 2 ) +
+  labs( title = "Density of gold price simulation", 
+        subtitle = "Simulated value", 
+        caption = paste("Mean (in blue) ")) +
+  facet_grid(year~.) + theme_bw() + 
+  scale_x_continuous(labels= scales::comma)
+
+
+
 price_simulation %>% pivot_longer(
   cols=c(year1, year2, year3, year4, year5), 
   names_to='year', 
@@ -297,9 +333,94 @@ legal_cost_simulation[1:100,] %>% mutate(i=row_number()) %>% pivot_longer(
 xlim <- c(min(legal_cost_simulation), max(legal_cost_simulation))
 for (i in 1:5){
   yearn_label = paste0( 'year', i)
-  plots[[yearn_label]] <- plot_distribution(legal_cost_simulation[[yearn_label]], label = yearn_label) + lims(x=xlim)
+  plots[[yearn_label]] <- plot_distribution(legal_cost_simulation[[yearn_label]],
+                                            label = yearn_label) + 
+    lims(x=xlim) + 
+    scale_x_continuous(labels = scales::comma) 
 }
 grid.arrange(plots[[1]], plots[[2]], plots[[3]], plots[[4]],plots[[5]], nrow=5)
 
 legal_resolve_in_favor_simulation %>% summarise_all(sum)
+
+## legal cost over 5 years 
+
+legal_cost_simulation %>% mutate(allyears = year1+year2+year3+year4+year5) %>% 
+  ggplot() + geom_histogram(aes(x=allyears)) + 
+  scale_x_continuous(labels = scales::comma) 
+
+
+
+#### future claims #### 
+
+sim_params[1:6]
+v <- sim_params %>% filter(cat == 'future_claim')
+
+future_claim_chance  <- v %>% filter(param == 'chance') %>% select(vmin) %>% first()
+future_claim_partner_cost <- v %>% filter(param == 'cost_partner') %>% select(vmin) %>% first()
+
+future_claim_simulation_team1 <- data.frame(year1=rep(0,n_trials))
+future_claim_simulation_team2 <- data.frame(year1=rep(0,n_trials))
+
+# simulates chance for one exploration team
+for (i in 1:5){ 
+  yearn_label = paste0('year',i)
+  future_claim_simulation_team1[yearn_label] <- rbinom(n=n_trials, size=1, prob=future_claim_chance)
+  future_claim_simulation_team2[yearn_label] <- rbinom(n=n_trials, size=1, prob=future_claim_chance)
+}
+
+future_claim_simulation_all_teams <- (
+  (future_claim_simulation_team1 %>% as.matrix()) 
+  | (future_claim_simulation_team2 %>% as.matrix()) 
+) %>% 
+  as_data_frame() %>% 
+  mutate_all(as.integer)
+
+
+
+future_claim_simulation_team1 %>% head()
+future_claim_simulation_team2 %>% head()
+future_claim_simulation_all_teams %>% head()
+
+future_claim_simulation_team1 %>% summarise_all(sum)
+future_claim_simulation_team2 %>% summarise_all(sum)
+future_claim_simulation_all_teams %>% summarise_all(sum)
+
+
+
+# which year produced discovery 
+team1 <- future_claim_simulation_team1 %>% 
+  rowwise() %>% 
+  mutate( discovery_year = first(which(c_across(year1:year5)==1))) %>% 
+  mutate(discovery_year = replace_na(discovery_year, 0)) %>% select(team1 = discovery_year)
+
+
+team2 <- future_claim_simulation_team2 %>% 
+  rowwise() %>% 
+  mutate( discovery_year = first(which(c_across(year1:year5)==1))) %>% 
+  mutate(discovery_year = replace_na(discovery_year, 0)) %>% select(team2 = discovery_year)
+
+
+all_teams <- future_claim_simulation_all_teams %>% 
+  rowwise() %>% 
+  mutate( discovery_year = first(which(c_across(year1:year5)==1))) %>% 
+  mutate(discovery_year = replace_na(discovery_year, 0)) %>% select(all_teams = discovery_year)
+
+
+
+discovery_year <- bind_cols(team1, team2, all_teams)
+
+discovery_year %>% ggplot() + 
+  geom_histogram(aes(x=team1)) + 
+  geom_histogram(aes(x=team2)) + 
+  geom_histogram(aes(x=all_teams))
+
+
+discovery_year %>% 
+  pivot_longer(cols=1:3, names_to='team', values_to='discovery_year') %>% 
+  ggplot() + 
+  geom_bar(aes(x=discovery_year)) + 
+  facet_grid(team ~ .)
+
+claim_discovery_year_simulation_team2 %>% ggplot(aes(x=discovery_year)) + geom_histogram()
+claim_discovery_year_simulation_all_teams %>% ggplot(aes(x=discovery_year)) + geom_histogram()
 
