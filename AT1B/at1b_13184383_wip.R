@@ -418,7 +418,8 @@ discovery_year %>% ggplot() +
 discovery_year %>% 
   pivot_longer(cols=1:3, names_to='team', values_to='discovery_year') %>% 
   ggplot() + 
-  geom_bar(aes(x=discovery_year)) + 
+  geom_bar(aes(x=discovery_year, y = ..count../sum(..count..))) + 
+  scale_y_continuous(labels = scales::percent, name = "percent") +
   facet_grid(team ~ .)
 
 claim_discovery_year_simulation_team2 %>% ggplot(aes(x=discovery_year)) + geom_histogram()
