@@ -14,3 +14,4 @@ future_claim,cost_partner,1-point,400000,0,0,AUD,partner team cost per annum per
 future_claim,chance,1-point,0.15,0,0,likelihood,chance of discovery for each team
 future_claim,limit,1-point,1,0,0,limit,claim discovery in exploration area
 simulation,n_trials,1-point,10000,0,0,number of trials in simulation
+budget,budget,1-point,2000000,0,0,available budget at start of venture
