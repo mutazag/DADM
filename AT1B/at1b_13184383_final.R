@@ -68,33 +68,37 @@ whatif <- function(year_court = 5,
   
   n_trials = get_param('simulation', 'n_trials')
   cost_of_sales <- get_param('new_claim','cost_sales')
-  s <- list() 
+
   
-  s[['budget']] <- append(s[['budget']], sim('budget', 'budget',n_trials,TRUE))
+  sims <- list() 
+  sims[['budget']] <- append(s[['budget']], sim('budget', 'budget',n_trials,TRUE))
   
   # simulate price
-  
-  
-  
-  ## for existing claim 
-  # for each year: 
-  #   simulate price, output 
-  #   for existing claim: 
-  #     calculate potential proceeds (with ops cost)
-  #     simulate legal and update proceeds
-  #   for exploration: 
-  #  
+
+  s <- list()
+  print('simulating gold price')  
   for (yearn in 1:5){
-    
-   
-    print(paste0('simulating year ', yearn))
     yearn_label = paste0('year',yearn)
     yearprev_label = paste0('year', yearn -1 )
     
     s[['price']][[yearn_label]] <- ifelse(yearn >1, s$price$year1, 0) + 
       sim('price_change',yearn_label,n_trials,(yearn==1)) 
-    print(paste0('   price: ', round(quantile(ecdf(s$price[[yearn_label]]), c(.9))[[1]],2)))
+    print(paste0('   year: ', yearn, ', price(90%) ', round(quantile(ecdf(s$price[[yearn_label]]), c(.9))[[1]],2)))
+  }
+  sims <- append(sims, s)
+  
+  ## for existing claim 
+  # for each year: 
+  #   simulate output 
+  #   calculate potential proceeds (with ops cost)
+  #   simulate legal and update proceeds
+  s <- list() ## needs price from sims 
+  for (yearn in 1:5){
+    yearn_label = paste0('year',yearn)
+    yearprev_label = paste0('year', yearn -1 )
     
+    print(paste0('simulating year ', yearn))
+
     if (yearn == 1){ 
       s[['output']][[yearn_label]] <- sim('new_claim', 'predicted', n_trials)
     } else{
@@ -106,9 +110,18 @@ whatif <- function(year_court = 5,
     print(paste0("   cost of ops: ", round(quantile(ecdf(s$cost_ops[[yearn_label]]), c(.9))[[1]],2)))
     
     # calculate year end position output, price and sales and ops cost
-    s[['potential_proceeds']][[yearn_label]] <- (s$output[[yearn_label]] * s$price[[yearn_label]] * (1-cost_of_sales)) - s$cost_ops[[yearn_label]]
+    s[['potential_proceeds']][[yearn_label]] <- (s$output[[yearn_label]] * sims$price[[yearn_label]] * (1-cost_of_sales)) - s$cost_ops[[yearn_label]]
     print(paste0("   potential proceeds: ", round(quantile(ecdf(s$potential_proceeds[[yearn_label]]), c(.9))[[1]],2)))
-    
+  }
+  sims <- append(sims, s)
+  
+  
+  
+  # simulate legal outcome 
+  s <-list()
+  for(yearn in 1:5){
+    yearn_label = paste0('year',yearn)
+    yearprev_label = paste0('year', yearn -1 )
     
     if (yearn <= year_court){
       s[['legal_cost']][[yearn_label]] <- sim('legal', 'cost_annual', n_trials )
@@ -122,27 +135,67 @@ whatif <- function(year_court = 5,
       s[['legal_resolve']] <- sim('legal', 'resolve_in_favor', n_trials)
       print(paste0("   >>>> case contested (w): ", sum(s$legal_resolve)))
     }
+  }
+  sims <- append(sims, s)
     
+  # update claim proceeds
+  # need sims for potential prceeds, legal cos and legal resolve 
+  s <- list()
+  for (yearn in 1:5) {
+    yearn_label = paste0('year',yearn)
+    yearprev_label = paste0('year', yearn -1 )
     
     # update claim proceeds based with legal costs and based on court outcome
     if (yearn <= year_court){ 
       # keep all proceeds before court year less legal cost 
-      s[['claim_proceeds']][[yearn_label]] <- s$potential_proceeds[[yearn_label]] - s$legal_cost[[yearn_label]]
+      s[['claim_proceeds']][[yearn_label]] <- sims$potential_proceeds[[yearn_label]] - sims$legal_cost[[yearn_label]]
     } else { 
       # keep proceeds if case resolved in our favor 
-      s[['claim_proceeds']][[yearn_label]] <- s$legal_resolve * s$potential_proceeds[[yearn_label]]
+      s[['claim_proceeds']][[yearn_label]] <- sims$legal_resolve * sims$potential_proceeds[[yearn_label]]
     }
     print(paste0("   actual claim proceeds: ", round(quantile(ecdf(s$claim_proceeds[[yearn_label]]), c(.9))[[1]],2)))
    
     # Exploration outcomes 
+  }
+  sims <- append(sims, s)
+  
+  
+  s <- list()
+  ## simulate exploration
+  for (yearn in 1:5){
+    yearn_label = paste0('year',yearn)
+    yearprev_label = paste0('year', yearn -1 )
     
-    #  if () yf * (yn > yf) => get revenue) { }
-      new_claim_revenue$yearn = sim(new_claim_outcome[yearn] * price[yearn])
-    
+    # exploration plan provides number of teams for each year 
     exploration <- exploration_plan %>% filter(year == yearn)
     
-    s[['exploration_cost']][[yearn_label]] <- max(0,exploration$year - 1) * sim('future_claim', 'cost_partner', n_trials, reps = TRUE)
-    print(paste0("   exploration cost: ", round(quantile(ecdf(s$exploration_cost[[yearn_label]]), c(.9))[[1]],2)))
+    #  if () yf * (yn > yf) => get revenue) { }
+    # potential proceed = gold_price * gold_output * (1-sales cost)
+    # assuming gold_output follows same output simulation as first min
+    s[['exploration']][['potential_proceeds']][[yearn_label]] <- sims$output[[yearn_label]] * sims$price[[yearn_label]]  * (1-cost_of_sales)
+    
+    # found gold
+    s[['exploration']][['found_gold']][[yearn_label]] <- rbinom(n=n_trials, size=1, prob = min(1,exploration$teams * get_param('future_claim', 'chance')))
+    # exploration cost is (n-1) x partner cost, where n is number of teams
+    # (includes internal team)
+    s[['exploration']][['cost']][[yearn_label]] <- max(0,exploration$teams - 1) * get_param('future_claim', 'cost_partner')
+    
+  }
+  
+  # calculate year of discovery from simulation 
+  s$exploration[['discovery_year']] <- (as.data.frame(s$exploration$found_gold) %>% rowwise() %>% 
+    mutate(discovery_year = first(which(c_across(year1:year5)==1))) %>% 
+    mutate(discovery_year = replace_na(discovery_year, 0)) %>% select(discovery_year))[[1]]
+  
+  # simulate new exploration proceeds
+  for (yearn in 1:5){
+    yearn_label = paste0('year',yearn)
+    yearprev_label = paste0('year', yearn -1 )
+    
+    # yearn is after year of discovery to start making proceeds and year
+    # discovery is not zero to elimiate the no discover case
+    sum(s$exploration$discovery_year&(yearn > s$exploration$discovery_year))
+    
   }
   
   return(s)
