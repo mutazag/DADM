@@ -9,9 +9,9 @@ new_claim,change_yoy,3-point,-0.1,0.3,0.7,percentage,claim output change on prec
 new_claim,cost_ops,3-point,500000,850000,1100000,AUD,fix operations cost per year
 new_claim,cost_sales,1-point,0.35,0,0,percentage,expense cost of sales
 legal,cost_annual,3-point,500000,750000,1000000,AUD,legal councel cost per year
-legal,resolve_in_favor,1-point,0.4,0,0,likelihood,likelihod to resolve case in favour
+legal,resolve_in_favor,prob,0.4,0,0,likelihood,likelihod to resolve case in favour
 future_claim,cost_partner,1-point,400000,0,0,AUD,partner team cost per annum per claim
-future_claim,chance,1-point,0.15,0,0,likelihood,chance of discovery for each team
+future_claim,chance,prob,0.15,0,0,likelihood,chance of discovery for each team
 future_claim,limit,1-point,1,0,0,limit,claim discovery in exploration area
 simulation,n_trials,1-point,10000,0,0,number of trials in simulation
 budget,budget,1-point,2000000,0,0,available budget at start of venture
