@@ -5,6 +5,9 @@
 library(tidyverse)
 library(gridExtra)
 
+
+#### functions definitions ####
+
 inv_triangle_cdf <- function (P, vmin, vml, vmax){
   # inverse triangle cdf is used to translate probabilities based on triangular
   # PDF, stuiable for 3-point estimate simulation
@@ -19,7 +22,7 @@ inv_triangle_cdf <- function (P, vmin, vml, vmax){
 get_param <- function(category='budget', parameter='budget', param_file = './parameters.csv'){
   if (!exists('sim_params')){
     print('loading sim params')
-    sp <- read.csv(param_file)
+    sp <- read.csv(param_file,stringsAsFactors = FALSE)
     assign('sim_params', sp, envir = .GlobalEnv)
   }
 
@@ -34,32 +37,6 @@ get_param <- function(category='budget', parameter='budget', param_file = './par
   return(p)
 }
 
-sim_df <- function(label = 'year1',
-                category='new_claim',
-                parameter='predicted',
-                n_trials = 10000,
-                reps = FALSE){
-
-  v <- get_param(category, parameter)
-
-  df <- data.frame(a = rep(ifelse(reps, v, 0), n_trials))
-  colnames(df) <- c(label)
-
-  if (is.data.frame(v)){
-    df[label] <- inv_triangle_cdf(
-      P = runif(n_trials),
-      vmin = v$vmin,
-      vml = v$vml,
-      vmax = v$vmax
-    )
-  } else if (is.numeric(v) && !reps){
-    df[label] <- rbinom(n=n_trials, size=1, prob=v)
-  }
-
-  return(df)
-}
-
-
 sim <- function(category='new_claim',
                  parameter='predicted',
                  n_trials = 10000,
@@ -83,113 +60,19 @@ sim <- function(category='new_claim',
   return(ret)
 }
 
-#### loading params ####
-
-n_trials = get_param('simulation', 'n_trials')
-cost_of_sales <- get_param('new_claim','cost_sales')
-s <- list()
-
-s[['budget']] <- append(s[['budget']], sim('budget', 'budget',n_trials,TRUE))
-
-year_court <- 3
-
-#### year 1:5 ####
-
-for (yearn in 1:5){
-  print(paste0('simulating year ', yearn))
-  yearn_label = paste0('year',yearn)
-  yearprev_label = paste0('year', yearn -1 )
-
-  s[['price']][[yearn_label]] <- ifelse(yearn >1, s$price$year1, 0) +
-    sim('price_change',yearn_label,n_trials,(yearn==1))
-  print(paste0('   price: ', round(quantile(ecdf(s$price[[yearn_label]]), c(.5))[[1]],2)))
-
-  if (yearn == 1){
-    s[['output']][[yearn_label]] <- sim('new_claim', 'predicted', n_trials)
-  } else{
-    s[['output']][[yearn_label]] <- s$output[[yearprev_label]] * (1 + sim('new_claim', 'change_yoy', n_trials))
-  }
-  print(paste0("   output: ", round(quantile(ecdf(s$output[[yearn_label]]), c(.5))[[1]],2)))
-
-  s[['cost_ops']][[yearn_label]] <- sim('new_claim', 'cost_ops', n_trials)
-  print(paste0("   cost of ops: ", round(quantile(ecdf(s$cost_ops[[yearn_label]]), c(.5))[[1]],2)))
-
-  # calculate year end position output, price and sales and ops cost
-  s[['potential_proceeds']][[yearn_label]] <- (s$output[[yearn_label]] * s$price[[yearn_label]] * (1-cost_of_sales)) - s$cost_ops[[yearn_label]]
-  print(paste0("   potential proceeds end position: ", round(quantile(ecdf(s$potential_proceeds[[yearn_label]]), c(.5))[[1]],2)))
-
-
-  if (yearn <= year_court){
-    s[['legal_cost']][[yearn_label]] <- sim('legal', 'cost_annual', n_trials )
-  } else {
-    s[['legal_cost']][[yearn_label]] <- 0
-  }
-  print(paste0("   legal cost: ", round(quantile(ecdf(s$legal_cost[[yearn_label]]), c(.5))[[1]],2)))
-
-  # what is the outcome of court
-  if (yearn == year_court){
-    s[['legal_resolve']] <- sim('legal', 'resolve_in_favor', n_trials)
-    print(paste0("   >>>> case contested (w): ", sum(s$legal_resolve)))
-  }
-
-
-  # update claim revenue based on court outcome
-  if (yearn <= year_court){
-    # keep all proceeds before court year
-    s[['claim_proceeds']][[yearn_label]] <- s$potential_proceeds[[yearn_label]]
-  } else {
-    # keep proceeds if case resolved in our favor
-    s[['claim_proceeds']][[yearn_label]] <- s$legal_resolve * s$potential_proceeds[[yearn_label]]
-  }
-  print(paste0("   actual claim proceeds: ", round(quantile(ecdf(s$claim_proceeds[[yearn_label]]), c(.5))[[1]],2)))
-  # sim_legal_cost <- sim(yearn_label,'legal', 'cost_annual', n_trials)
-  # sim_legal_resolve <- sim(yearn_label,'legal', 'resolve_in_favor', n_trials)
-  #
-  #
-  # sim_future_claim_cost <- sim(yearn_label, 'future_claim','cost_partner', n_trials, TRUE)
-  # sim_future_claim_found <- sim(yearn_label, 'future_claim', 'chance', n_trials)
-
-
-}
-
-sim <- function(category='new_claim',
-                 parameter='predicted',
-                 n_trials = 10000,
-                 reps = FALSE){
-
-  v <- get_param(category, parameter)
-
-  ret <- rep(ifelse(reps, v, 0), n_trials)
-
-  if (is.data.frame(v)){
-    ret <- inv_triangle_cdf(
-      P = runif(n_trials),
-      vmin = v$vmin,
-      vml = v$vml,
-      vmax = v$vmax
-    )
-  } else if (is.numeric(v) && !reps){
-    ret <- rbinom(n=n_trials, size=1, prob=v)
-  }
-
-  return(ret)
-}
-
-
-#### year 1:5 ####
+#### What if function ####
 # what if can be used to simulate one claim
-whatif <- function(year_court = 5,
+whatif <- function(year_court = 2,
                    exploration_plan = data.frame(year = c(1,2,3,4,5),
-                                                 teams = c(1,1,1,1,1)))
+                                                 teams = c(1,2,2,2,2)))
   {
   # loading params
-
   n_trials = get_param('simulation', 'n_trials')
   cost_of_sales <- get_param('new_claim','cost_sales')
 
 
   sims <- list()
-  sims[['budget']] <- append(s[['budget']], sim('budget', 'budget',n_trials,TRUE))
+  sims[['budget']] <- sim('budget', 'budget',n_trials,TRUE)
 
   # simulate price
 
@@ -201,7 +84,7 @@ whatif <- function(year_court = 5,
 
     s[['price']][[yearn_label]] <- ifelse(yearn >1, s$price$year1, 0) +
       sim('price_change',yearn_label,n_trials,(yearn==1))
-    print(paste0('   year: ', yearn, ', price(90%) ', round(quantile(ecdf(s$price[[yearn_label]]), c(.9))[[1]],2)))
+    # print(paste0('   year: ', yearn, ', price(90%) ', round(quantile(ecdf(s$price[[yearn_label]]), c(.9))[[1]],2)))
   }
   sims <- append(sims, s)
 
@@ -210,30 +93,27 @@ whatif <- function(year_court = 5,
   #   simulate output
   #   calculate potential proceeds (with ops cost)
   #   simulate legal and update proceeds
+  print('simulating potential proceeds')
   s <- list() ## needs price from sims
   for (yearn in 1:5){
     yearn_label = paste0('year',yearn)
     yearprev_label = paste0('year', yearn -1 )
-
-    print(paste0('simulating year ', yearn))
 
     if (yearn == 1){
       s[['output']][[yearn_label]] <- sim('new_claim', 'predicted', n_trials)
     } else{
       s[['output']][[yearn_label]] <- s$output[[yearprev_label]] * (1 + sim('new_claim', 'change_yoy', n_trials))
     }
-    print(paste0("   output: ", round(quantile(ecdf(s$output[[yearn_label]]), c(.9))[[1]],2)))
+    # print(paste0("   output: ", round(quantile(ecdf(s$output[[yearn_label]]), c(.9))[[1]],2)))
 
     s[['cost_ops']][[yearn_label]] <- sim('new_claim', 'cost_ops', n_trials)
-    print(paste0("   cost of ops: ", round(quantile(ecdf(s$cost_ops[[yearn_label]]), c(.9))[[1]],2)))
+    # print(paste0("   cost of ops: ", round(quantile(ecdf(s$cost_ops[[yearn_label]]), c(.9))[[1]],2)))
 
     # calculate year end position output, price and sales and ops cost
     s[['potential_proceeds']][[yearn_label]] <- (s$output[[yearn_label]] * sims$price[[yearn_label]] * (1-cost_of_sales)) - s$cost_ops[[yearn_label]]
-    print(paste0("   potential proceeds: ", round(quantile(ecdf(s$potential_proceeds[[yearn_label]]), c(.9))[[1]],2)))
+    print(paste0("   potential proceeds ", yearn_label, ': ', round(quantile(ecdf(s$potential_proceeds[[yearn_label]]), c(.1))[[1]],2)))
   }
   sims <- append(sims, s)
-
-
 
   # simulate legal outcome
   s <-list()
@@ -246,18 +126,18 @@ whatif <- function(year_court = 5,
     } else {
       s[['legal_cost']][[yearn_label]] <- 0
     }
-    print(paste0("   legal cost: ", round(quantile(ecdf(s$legal_cost[[yearn_label]]), c(.9))[[1]],2)))
+    # print(paste0("   legal cost: ", round(quantile(ecdf(s$legal_cost[[yearn_label]]), c(.9))[[1]],2)))
 
     # what is the outcome of court
     if (yearn == year_court){
       s[['legal_resolve']] <- sim('legal', 'resolve_in_favor', n_trials)
-      print(paste0("   >>>> case contested (w): ", sum(s$legal_resolve)))
+      print(paste0("    ", yearn_label, ">>>> case contested (w): ", sum(s$legal_resolve)))
     }
   }
   sims <- append(sims, s)
 
   # update claim proceeds
-  # need sims for potential prceeds, legal cos and legal resolve
+  # need sims for potential proceeds, legal cost and legal resolve
   s <- list()
   for (yearn in 1:5) {
     yearn_label = paste0('year',yearn)
@@ -271,7 +151,8 @@ whatif <- function(year_court = 5,
       # keep proceeds if case resolved in our favor
       s[['claim_proceeds']][[yearn_label]] <- sims$legal_resolve * sims$potential_proceeds[[yearn_label]]
     }
-    print(paste0("   actual claim proceeds: ", round(quantile(ecdf(s$claim_proceeds[[yearn_label]]), c(.9))[[1]],2)))
+    print(paste0("   actual claim proceeds 90% ", yearn_label, ': ', round(quantile(ecdf(s$claim_proceeds[[yearn_label]]), c(.1))[[1]],2)))
+    print(paste0("   actual claim proceeds 50% ", yearn_label, ': ', round(quantile(ecdf(s$claim_proceeds[[yearn_label]]), c(.5))[[1]],2)))
 
     # Exploration outcomes
   }
@@ -280,6 +161,7 @@ whatif <- function(year_court = 5,
 
   s <- list()
   ## simulate exploration
+  print(exploration_plan)
   for (yearn in 1:5){
     yearn_label = paste0('year',yearn)
     yearprev_label = paste0('year', yearn -1 )
@@ -311,12 +193,41 @@ whatif <- function(year_court = 5,
     yearprev_label = paste0('year', yearn -1 )
 
     # yearn is after year of discovery to start making proceeds and year
-    # discovery is not zero to elimiate the no discover case
-    sum(s$exploration$discovery_year&(yearn > s$exploration$discovery_year))
+    # discovery is not zero to eliminate the no discover case
+    
+    # shows the probability to start earning in each year given our exploration plan
+    s$exploration[['producing_prob']][[yearn_label]] <- (sum(s$exploration$discovery_year&(yearn > s$exploration$discovery_year))) / n_trials
+    
+    
+    start_producing <- as.integer(s$exploration$discovery_year&(yearn > s$exploration$discovery_year))
+    
+    s$exploration[['claim_proceeds']][[yearn_label]] <- 
+      (start_producing * sims$output[[yearn_label]] * sims$price[[yearn_label]] * (1 - cost_of_sales))
+    s$exploration[['mining_cost']][[yearn_label]] <- (s$exploration$cost[[yearn_label]] * (yearn <= s$exploration$discovery_year))
+    
+    s$exploration[['claim_pnl']][[yearn_label]] <- s$exploration$claim_proceeds[[yearn_label]] - s$exploration$mining_cost[[yearn_label]]
 
+    print(paste0("   ", yearn_label, ' future claim pnl 90%:', round(quantile(ecdf(s$exploration$claim_pnl[[yearn_label]]), c(.1))[[1]],2)))
   }
+  sims <- append(sims, s)
+  
+  # calculate final pnl 
+  s <- list()
+  for (yearn in 1:5){
+    yearn_label = paste0('year',yearn)
+    yearprev_label = paste0('year', yearn -1 )
+    s[['pnl']][[yearn_label]] <-ifelse(yearn == 1, sims$budget,0) + 
+      sims$claim_proceeds[[yearn_label]] + 
+      sims$exploration$claim_pnl[[yearn_label]] 
+    print(paste0("   ", yearn_label, ' pnl :', round(quantile(ecdf(s$pnl[[yearn_label]]), c(.1))[[1]],2)))
+  }
+  sims <- append(sims, s)
+  
+  sims[['final_position']] <- (as.data.frame(sims$pnl) %>% rowwise() %>% 
+    mutate(total = sum(c_across(year1:year5))) %>% select(total))[[1]]
+  print(paste0(' ***  final position (90%)', round(quantile(ecdf(sims$final_position), c(.1))[[1]],2)))
 
-  return(s)
+  return(sims)
 }
 
 
@@ -334,21 +245,15 @@ scenario1 <- whatif(year_court = 1, exploration_plan = exp_plan)
 
 
 logging <- list()
+exp_plan <- data.frame( year = c(1,2,3,4,5),
+                        teams = c(3,1,1,2,1))
 
 for (year_court in 1:5){
-  s <- whatif(year_court = year_court)
+  s <- whatif(year_court = year_court, exploration_plan = exp_plan)
 
-  totals <- list()
+  actual = round(quantile(ecdf(s$final_position), c(.1), type=7))
 
-  totals[['actual']] <- (data.frame(s$claim_proceeds) %>%  rowwise() %>% mutate(total = sum(c_across(year1:year5))) %>% select(total))[[1]]
-  totals[['potential']] <- (data.frame(s$potential_proceeds) %>%  rowwise() %>% mutate(total = sum(c_across(year1:year5))) %>% select(total))[[1]]
-  # plot(ecdf(totals$actual))
-  # plot(ecdf(totals$potential))
-
-  potential = quantile(ecdf(totals$potential), c(.9), type=7)
-  actual = quantile(ecdf(totals$actual), c(.9), type=7)
-
-  logging[[year_court]] <- paste0('court year ', year_court, ' potential: ', potential, ' actual: ', actual)
+  logging[[year_court]] <- paste0('court year ', year_court, ' actual 90% likely  ', actual)
 
 }
 
