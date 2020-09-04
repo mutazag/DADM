@@ -1,89 +1,175 @@
 
 source('at1b_13184383_final.R')
 
-
-year_court = 1
-exploration_plan = data.frame(year = c(1,2,3,4,5),
-                              teams = c(3,1,1,1,1))
-
-sims1 <- whatif(year_court, exploration_plan)
-
-plot_yearly_lines(sims1$eoy_position)
-plot_yearly_lines(sims1$eoy_position, ci=.95)
-plot_yearly_lines(sims1$eoy_position, ci=.8)
-
-plot_yearly_lines(sims1$eoy_position)
-
-plot_yearly_boxplots(sims1$claim_proceeds, title = 'Claim proceeds', subtitle='court year 1',caption = 'including legal cost')
-plot_yearly_boxplots(sims1$pnl, title='Yearly Profit and Loss', caption = print_quantiles('year1 P&L', sims1$pnl$year1))
-plot_yearly_boxplots(sims1$eoy_position, subtitle='court year 1', caption = print_quantiles('year1 position', sims1$eoy_position$year1))
-
-plot_yearly_boxplots(sims1$exploration$claim_pnl, title = 'Future claims P&L', caption = '3 exploration teams in year 1')
-print_quantiles('year1 position', sims1$eoy_position$year1)
-print_quantiles('year5 position', sims1$eoy_position$year5)
-print_quantiles('final position', sims1$final_position)
+#### Scenario 1: no exploration ####
+scenarios <- list() 
+for (year_court in 1:5){ 
+  
+  exploration_plan = data.frame(year = c(1,2,3,4,5),
+                                teams = c(0,0,0,0,0))
+  
+  s <- whatif(year_court, exploration_plan)
+  s[['exploration_plan']] <- exploration_plan
+  s[['year_court']] <- year_court
+  
+  scenarios[[paste0('year_court_', year_court)]] <-s
+}
 
 
+for (s in scenarios){
+  print(s$year_court)
+  sfinalposition <- plot_label_quantiles(s$final_position)
+  p1 <- plot_yearly_boxplots(s$eoy_position, 
+                            title = 'End of year position for simulated scenario', 
+                            subtitle = sfinalposition,
+                            caption = paste0('Go to court in year ', s$year_court, ' no exploration')
+                            )
+  plot_file_name1 <- paste0('s1_eoy_position_box_court_',s$year_court,'_no_exploration.png')
+  png(paste0('./img/',plot_file_name1))
+  print(p1)
+  dev.off()
+  p2 <- plot_yearly_lines(s$eoy_position, 
+                             title = 'End of year position for simulated scenario', 
+                             subtitle = sfinalposition,
+                             caption = paste0('Go to court in year ', s$year_court, ' no exploration'), 
+                             ci = .5
+  )
+  plot_file_name2 <- paste0('s1_eoy_position_line_court_',s$year_court,'_no_exploration.png')
+  png(paste0('./img/',plot_file_name2))
+  print(p2)
+  
+  p3 <- plot_yearly_boxplots(s$pnl, 
+                             title = 'Yearly P&L position for simulated scenario', 
+                             subtitle = sfinalposition,
+                             caption = paste0('Go to court in year ', s$year_court, ' no exploration')
+  )
+  plot_file_name3 <- paste0('s1_pnl_box_court_',s$year_court,'_no_exploration.png')
+  png(paste0('./img/',plot_file_name3))
+  print(p3)
+  dev.off()
+  
+  dev.off()
+  
+}
 
 
-# scenario 2 -- court year 2
-year_court = 2
-exploration_plan = data.frame(year = c(1,2,3,4,5),
-                              teams = c(3,1,1,1,1))
-sims2 <- whatif(year_court, exploration_plan)
-plot_yearly_boxplots(sims2$claim_proceeds, title = 'Claim proceeds', subtitle='court year 2', caption = 'including legal cost')
-plot_yearly_boxplots(sims2$pnl, title='Yearly Profit and Loss', caption = print_quantiles('year1 P&L', sims1$pnl$year1))
-plot_yearly_boxplots(sims2$eoy_position, subtitle='court year 2', caption = print_quantiles('year1 position', sims1$eoy_position$year1))
-print_quantiles('final position', sims2$final_position)
+
+#### Scenario 2: in house exploration ####
+scenarios2 <- list() 
+for (year_court in 1:5){ 
+  
+  exploration_plan = data.frame(year = c(1,2,3,4,5),
+                                teams = c(1,1,1,1,1))
+  
+  s <- whatif(year_court, exploration_plan)
+  s[['exploration_plan']] <- exploration_plan
+  s[['year_court']] <- year_court
+  
+  scenarios2[[paste0('year_court_', year_court)]] <-s
+}
+
+
+for (s in scenarios2){
+  print(s$year_court)
+  sfinalposition <- plot_label_quantiles(s$final_position)
+  p1 <- plot_yearly_boxplots(s$eoy_position, 
+                             title = 'End of year position for simulated scenario', 
+                             subtitle = sfinalposition,
+                             caption = paste0('Go to court in year ', s$year_court, ' inhouse exploration')
+  )
+  plot_file_name1 <- paste0('s2_eoy_position_box_court_',s$year_court,'_inhouse_exploration.png')
+  png(paste0('./img/',plot_file_name1))
+  print(p1)
+  dev.off()
+  p2 <- plot_yearly_lines(s$eoy_position, 
+                          title = 'End of year position for simulated scenario', 
+                          subtitle = sfinalposition,
+                          caption = paste0('Go to court in year ', s$year_court, ' inhouse exploration'), 
+                          ci = .5
+  )
+  plot_file_name2 <- paste0('s2_eoy_position_line_court_',s$year_court,'_inhouse_exploration.png')
+  png(paste0('./img/',plot_file_name2))
+  print(p2)
+  
+  
+  p3 <- plot_yearly_boxplots(s$pnl, 
+                             title = 'Yearly P&L position for simulated scenario', 
+                             subtitle = sfinalposition,
+                             caption = paste0('Go to court in year ', s$year_court, ' inhouse exploration')
+  )
+  plot_file_name3 <- paste0('s2_pnl_box_court_',s$year_court,'_inhouse_exploration.png')
+  png(paste0('./img/',plot_file_name3))
+  print(p3)
+  dev.off()
+  
+  dev.off()
+  
+}
 
 
 
-# scenario 3 -- court year 1
-year_court = 1
-exploration_plan = data.frame(year = c(1,2,3,4,5),
-                              teams = c(1,1,1,1,1))
-sims3 <- whatif(year_court, exploration_plan)
-plot_yearly_boxplots(sims3$claim_proceeds, title = 'Claim proceeds', subtitle='court year 1 - not enough exploration', caption = 'including legal cost')
-plot_yearly_boxplots(sims3$pnl, title='Yearly Profit and Loss', caption = print_quantiles('year1 P&L', sims1$pnl$year1))
-plot_yearly_boxplots(sims3$eoy_position, subtitle='court year 1 - not enough exploration', caption = print_quantiles('year1 position', sims1$eoy_position$year1))
-print_quantiles('final position', sims3$final_position)
 
 
+#### Scenario 3: external exploration ####
+scenarios3 <- list() 
+for (year_court in 1:5){ 
+  
+  exploration_plan = data.frame(year = c(1,2,3,4,5),
+                                teams = c(3,2,2,2,1))
+  
+  s <- whatif(year_court, exploration_plan)
+  s[['exploration_plan']] <- exploration_plan
+  s[['year_court']] <- year_court
+  
+  scenarios3[[paste0('year_court_', year_court)]] <-s
+}
 
 
-# scenario 4-- court year 5
-year_court = 5
-exploration_plan = data.frame(year = c(1,2,3,4,5),
-                              teams = c(1,1,1,1,1))
-sims4 <- whatif(year_court, exploration_plan)
-plot_yearly_boxplots(sims4$claim_proceeds, title = 'Claim proceeds', subtitle='court year 5 - not enough exploration', caption = 'including legal cost')
-plot_yearly_boxplots(sims4$pnl, title='Yearly Profit and Loss', caption = print_quantiles('year1 P&L', sims1$pnl$year1))
-plot_yearly_boxplots(sims4$eoy_position, subtitle='court year 5 - not enough exploration', caption = print_quantiles('year1 position', sims1$eoy_position$year1))
-print_quantiles('final position', sims4$final_position)
+for (s in scenarios3){
+  print(s$year_court)
+  sfinalposition <- plot_label_quantiles(s$final_position)
+  p1 <- plot_yearly_boxplots(s$eoy_position, 
+                             title = 'End of year position for simulated scenario', 
+                             subtitle = sfinalposition,
+                             caption = paste0('Go to court in year ', s$year_court, ' external exploration')
+  )
+  plot_file_name1 <- paste0('s3_eoy_position_box_court_',s$year_court,'_external_exploration.png')
+  png(paste0('./img/',plot_file_name1))
+  print(p1)
+  dev.off()
+  p2 <- plot_yearly_lines(s$eoy_position, 
+                          title = 'End of year position for simulated scenario', 
+                          subtitle = sfinalposition,
+                          caption = paste0('Go to court in year ', s$year_court, ' external exploration'), 
+                          ci = .5
+  )
+  plot_file_name2 <- paste0('s3_eoy_position_line_court_',s$year_court,'_external_exploration.png')
+  png(paste0('./img/',plot_file_name2))
+  print(p2)
+  
+  
+  p3 <- plot_yearly_boxplots(s$pnl, 
+                             title = 'Yearly P&L position for simulated scenario', 
+                             subtitle = sfinalposition,
+                             caption = paste0('Go to court in year ', s$year_court, ' external exploration')
+  )
+  plot_file_name3 <- paste0('s3_pnl_box_court_',s$year_court,'_external_exploration.png')
+  png(paste0('./img/',plot_file_name3))
+  print(p3)
+  dev.off()
+  
+  dev.off()
+  
+}
 
-# chance to break even at end of year 5
-ecdf(sims1$final_position)(0)
-ecdf(sims2$final_position)(0)
-ecdf(sims3$final_position)(0)
-ecdf(sims4$final_position)(0)
+sfinalposition <- plot_label_quantiles(scenarios3$year_court_5$final_position, ci = .95)
 
+p3_year5 <- plot_yearly_boxplots(scenarios3$year_court_5$pnl, 
+                           title = 'Yearly P&L position for simulated scenario', 
+                           subtitle = sfinalposition,
+                           caption = '')
 
-# finishing with 10mill at end of year 5
-ecdf(sims1$final_position)(10e6)
-ecdf(sims2$final_position)(10e6)
-ecdf(sims3$final_position)(10e6)
-ecdf(sims4$final_position)(10e6)
-
-
-# scenario 5-- tank
-year_court = 1
-exploration_plan = data.frame(year = c(1,2,3,4,5),
-                              teams = c(0,0,0,0,0))
-sims5 <- whatif(year_court, exploration_plan)
-plot_yearly_boxplots(sims5$potential_proceeds, title = 'Potential proceeds', subtitle='tank', caption = 'NOT including legal cost')
-plot_yearly_boxplots(sims5$claim_proceeds, title = 'Claim proceeds', subtitle='tank', caption = 'including legal cost')
-plot_yearly_boxplots(sims5$pnl, title='Yearly Profit and Loss', caption = print_quantiles('year1 P&L', sims1$pnl$year1))
-plot_yearly_boxplots(sims5$eoy_position, subtitle='tank', caption = print_quantiles('year1 position', sims1$eoy_position$year1))
-print_quantiles('final position', sims5$final_position)
-
-plot_yearly_lines(sims5$eoy_position, ci = .5)
+p3_year5_filename <- paste0('s3_pnl_box_court_',s$year_court,'_external_exploration_report.png')
+png(paste0('./img/',p3_year5_filename))
+print(p3_year5)
+dev.off()

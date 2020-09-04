@@ -265,6 +265,24 @@ whatif <- function(year_court = 2,
 
 #### visualisations ####
 
+
+
+plot_label_quantiles <-function (s_years, ci=.5){
+  
+  qq <- 1-c((1-ci)/2, .5, (1+ci)/2)
+  q_labels <- scales::percent(c((1-ci)/2, .5, (1+ci)/2))
+  ci_label <- scales::percent(ci)
+  qq_ecdf <- round(quantile(ecdf(s_years), probs = qq, type=7)/1e6,2)
+  
+  s  <- paste0(q_labels[[2]], ' probability to exceed $',qq_ecdf[[2]],'mil\n', 
+               ci_label, ' of simulations are between ', qq_ecdf[[3]] , ' and ', 
+               qq_ecdf[[1]], ' million AUD' )
+  
+  return(s)
+}
+
+
+
 plot_yearly_boxplots <- function(s_years, title='Yearly P&L', subtitle='', caption=''){
   
   
@@ -292,7 +310,15 @@ plot_yearly_boxplots <- function(s_years, title='Yearly P&L', subtitle='', capti
   return(p)
 }
 
-plot_yearly_lines <- function(s_years, ci= .9, title='Cumulative Earnings'){
+
+
+
+
+plot_yearly_lines <- function(s_years, 
+                              ci= .9, 
+                              title='Cumulative Earnings',
+                              subtitle='', 
+                              caption=''){
   
   qq <- 1-c((1-ci)/2, .5, (1+ci)/2)
   q_labels <- scales::percent(c((1-ci)/2, .5, (1+ci)/2))
@@ -319,7 +345,9 @@ plot_yearly_lines <- function(s_years, ci= .9, title='Cumulative Earnings'){
     scale_y_continuous(labels = label_dollar_custom,
                        breaks = scales::pretty_breaks(n = 10),
                        limits = c(-5e+6, 35e+6)) +
-    labs(title=title, subtitle = paste0(ci_label, ' confidence')) +
+    labs(title=title, 
+         subtitle = subtitle, 
+         caption = caption) +
     theme_light() + 
     theme(axis.title = element_blank()) -> p
   
