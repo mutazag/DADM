@@ -60,6 +60,16 @@ sim <- function(category='new_claim',
   return(ret)
 }
 
+
+print_quantiles <- function(label, series){ 
+    fx <- ecdf(series)
+    
+    qq <- round(quantile(fx, c(.05,.5,.95), type=7))
+    
+    print(paste0('   ', label, ' 95% over: ', qq[[1]], ', 50% over: ', qq[[2]], ', 5% over: ', qq[[3]]))
+}
+
+
 #### What if function ####
 # what if can be used to simulate one claim
 whatif <- function(year_court = 2,
@@ -84,6 +94,7 @@ whatif <- function(year_court = 2,
 
     s[['price']][[yearn_label]] <- ifelse(yearn >1, s$price$year1, 0) +
       sim('price_change',yearn_label,n_trials,(yearn==1))
+    print_quantiles(paste0('gold price ', yearn_label), s$price[[yearn_label]])
     # print(paste0('   year: ', yearn, ', price(90%) ', round(quantile(ecdf(s$price[[yearn_label]]), c(.9))[[1]],2)))
   }
   sims <- append(sims, s)
@@ -104,14 +115,17 @@ whatif <- function(year_court = 2,
     } else{
       s[['output']][[yearn_label]] <- s$output[[yearprev_label]] * (1 + sim('new_claim', 'change_yoy', n_trials))
     }
+    print_quantiles(paste0('output ', yearn_label), s$output[[yearn_label]])
     # print(paste0("   output: ", round(quantile(ecdf(s$output[[yearn_label]]), c(.9))[[1]],2)))
 
     s[['cost_ops']][[yearn_label]] <- sim('new_claim', 'cost_ops', n_trials)
+    print_quantiles(paste0('cost of ops ', yearn_label), s$cost_ops[[yearn_label]])
     # print(paste0("   cost of ops: ", round(quantile(ecdf(s$cost_ops[[yearn_label]]), c(.9))[[1]],2)))
 
     # calculate year end position output, price and sales and ops cost
     s[['potential_proceeds']][[yearn_label]] <- (s$output[[yearn_label]] * sims$price[[yearn_label]] * (1-cost_of_sales)) - s$cost_ops[[yearn_label]]
-    print(paste0("   potential proceeds ", yearn_label, ': ', round(quantile(ecdf(s$potential_proceeds[[yearn_label]]), c(.1))[[1]],2)))
+    print_quantiles(paste0('potential proceeds ', yearn_label), s$potential_proceeds[[yearn_label]])
+    #print(paste0("   potential proceeds ", yearn_label, ': ', round(quantile(ecdf(s$potential_proceeds[[yearn_label]]), c(.1))[[1]],2)))
   }
   sims <- append(sims, s)
 
@@ -126,6 +140,7 @@ whatif <- function(year_court = 2,
     } else {
       s[['legal_cost']][[yearn_label]] <- 0
     }
+    print_quantiles(paste0('legal cost ', yearn_label), s$legal_cost[[yearn_label]])
     # print(paste0("   legal cost: ", round(quantile(ecdf(s$legal_cost[[yearn_label]]), c(.9))[[1]],2)))
 
     # what is the outcome of court
@@ -151,9 +166,9 @@ whatif <- function(year_court = 2,
       # keep proceeds if case resolved in our favor
       s[['claim_proceeds']][[yearn_label]] <- sims$legal_resolve * sims$potential_proceeds[[yearn_label]]
     }
-    print(paste0("   actual claim proceeds 90% ", yearn_label, ': ', round(quantile(ecdf(s$claim_proceeds[[yearn_label]]), c(.1))[[1]],2)))
-    print(paste0("   actual claim proceeds 50% ", yearn_label, ': ', round(quantile(ecdf(s$claim_proceeds[[yearn_label]]), c(.5))[[1]],2)))
-
+    print_quantiles(paste0('claim proceeds ', yearn_label), s$claim_proceeds[[yearn_label]])
+    # print(paste0("   actual claim proceeds 90% ", yearn_label, ': ', round(quantile(ecdf(s$claim_proceeds[[yearn_label]]), c(.1))[[1]],2)))
+    # print(paste0("   actual claim proceeds 50% ", yearn_label, ': ', round(quantile(ecdf(s$claim_proceeds[[yearn_label]]), c(.5))[[1]],2)))
     # Exploration outcomes
   }
   sims <- append(sims, s)
@@ -179,6 +194,7 @@ whatif <- function(year_court = 2,
     # exploration cost is (n-1) x partner cost, where n is number of teams
     # (includes internal team)
     s[['exploration']][['cost']][[yearn_label]] <- max(0,exploration$teams - 1) * get_param('future_claim', 'cost_partner')
+    print_quantiles(paste0('future claim potential proceeds ', yearn_label), s$exploration$potential_proceeds[[yearn_label]])
 
   }
 
@@ -206,8 +222,8 @@ whatif <- function(year_court = 2,
     s$exploration[['mining_cost']][[yearn_label]] <- (s$exploration$cost[[yearn_label]] * (yearn <= s$exploration$discovery_year))
     
     s$exploration[['claim_pnl']][[yearn_label]] <- s$exploration$claim_proceeds[[yearn_label]] - s$exploration$mining_cost[[yearn_label]]
-
-    print(paste0("   ", yearn_label, ' future claim pnl 90%:', round(quantile(ecdf(s$exploration$claim_pnl[[yearn_label]]), c(.1))[[1]],2)))
+    print_quantiles(paste0('future claim pnl ', yearn_label), s$exploration$claim_pnl[[yearn_label]])
+    # print(paste0("   ", yearn_label, ' future claim pnl 90%:', round(quantile(ecdf(s$exploration$claim_pnl[[yearn_label]]), c(.1))[[1]],2)))
   }
   sims <- append(sims, s)
   
@@ -219,50 +235,52 @@ whatif <- function(year_court = 2,
     s[['pnl']][[yearn_label]] <-ifelse(yearn == 1, sims$budget,0) + 
       sims$claim_proceeds[[yearn_label]] + 
       sims$exploration$claim_pnl[[yearn_label]] 
-    print(paste0("   ", yearn_label, ' pnl :', round(quantile(ecdf(s$pnl[[yearn_label]]), c(.1))[[1]],2)))
+    print_quantiles(paste0('full pnl ', yearn_label), s$pnl[[yearn_label]])
+    # print(paste0("   ", yearn_label, ' pnl :', round(quantile(ecdf(s$pnl[[yearn_label]]), c(.1))[[1]],2)))
   }
   sims <- append(sims, s)
   
   sims[['final_position']] <- (as.data.frame(sims$pnl) %>% rowwise() %>% 
     mutate(total = sum(c_across(year1:year5))) %>% select(total))[[1]]
-  print(paste0(' ***  final position (90%)', round(quantile(ecdf(sims$final_position), c(.1))[[1]],2)))
+  print_quantiles('**** final position ', sims$final_position)
+  print(paste0(' ***  final position (90%)', round(quantile(ecdf(sims$final_position), c(.1))[[1]])))
 
   return(sims)
 }
 
 
 #### testing ####
-
-exp_plan <- data.frame( year = c(1,2,3,4,5),
-                        teams = c(0,1,2,3,4))
-
-scenario1 <- whatif(year_court = 1, exploration_plan = exp_plan)
-
-# plot(ecdf(s$output$year2))
-# fx <- (ecdf(s$output$year2))
-# quantile(fx, c(.5))
-# bind_cols(s$output)
-
-
-logging <- list()
-exp_plan <- data.frame( year = c(1,2,3,4,5),
-                        teams = c(3,1,1,2,1))
-
-for (year_court in 1:5){
-  s <- whatif(year_court = year_court, exploration_plan = exp_plan)
-
-  actual = round(quantile(ecdf(s$final_position), c(.1), type=7))
-
-  logging[[year_court]] <- paste0('court year ', year_court, ' actual 90% likely  ', actual)
+tests < function(){
+  exp_plan <- data.frame( year = c(1,2,3,4,5),
+                          teams = c(1,1,1,1,1))
+  
+  scenario1 <- whatif(year_court = 1, exploration_plan = exp_plan)
+  
+  # plot(ecdf(s$output$year2))
+  # fx <- (ecdf(s$output$year2))
+  # quantile(fx, c(.5))
+  # bind_cols(s$output)
+  
+  
+  logging <- list()
+  exp_plan <- data.frame( year = c(1,2,3,4,5),
+                          teams = c(2,1,1,1,1))
+  
+  for (year_court in 1:5){
+    s <- whatif(year_court = year_court, exploration_plan = exp_plan)
+    logging[[year_court]] <- print_quantiles(paste0('court year ', year_court, ' final position'), s$final_position)
+  }
+  
+  
+  print(logging)
+  
+  
+  
+  s <- whatif(year_court = 1, exploration_plan = exp_plan)
+  for (yearn in 1:5){
+    yearn_label <- paste0('year',yearn)
+    print_quantiles(paste0('yearn pnl ', yearn_label), s$pnl[[yearn_label]])
+  }
+  print_quantiles('final position', s$final_position)
 
 }
-
-
-print(logging)
-
-
-# plot(ecdf(s$output$year2))
-# fx <- (ecdf(s$output$year2))
-# quantile(fx, c(.5))
-# bind_cols(s$output)
-
