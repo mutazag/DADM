@@ -12,36 +12,73 @@ sims1 <- whatif(year_court, exploration_plan)
 
 as.data.frame(sims1$pnl) %>% head() %>% summarise_all(list(m1 = min, m2=max))
 
-
-as.data.frame(sims1$pnl) %>% head() %>% pivot_longer(cols = year1:year5) %>% 
-  group_by(name) %>% 
-  summarise(.funs=quantile, c(.1,.5,.9))
-
-
-as.data.frame(sims1$pnl) %>% 
-  summarise(across(year1:year5, quantile, c(.025, .05,.1,.5,.9,.95,.975))) %>% 
-  'rownames<-' (c("0:2.5%", "1:5%","2:10%","3:50%","4:90%", "5:95%","6:97.5%")) %>% 
-  rownames_to_column('quantiles') %>% 
-  pivot_longer(cols=year1:year5) %>% 
-  ggplot(aes(x=name, y=value, group=quantiles, colour=quantiles)) +
-  geom_line() + 
-  geom_point() + 
-  scale_y_continuous(labels = scales::comma)
+# as.data.frame(sims1$pnl) %>% 
+#   summarise(across(year1:year5, quantile, c(.025, .05,.1,.5,.9,.95,.975))) %>% 
+#   'rownames<-' (c("0:2.5%", "1:5%","2:10%","3:50%","4:90%", "5:95%","6:97.5%")) %>% 
+#   rownames_to_column('quantiles') %>% 
+#   pivot_longer(cols=year1:year5) %>% 
+#   ggplot(aes(x=name, y=value, group=quantiles, colour=quantiles)) +
+#   geom_line() + 
+#   geom_point() + 
+#   scale_y_continuous(labels = scales::comma)
 
 
+# 
+# as.data.frame(sims1$pnl) %>% 
+#   summarise(across(year1:year5, quantile, 1-c(.025, .05,.1,.5,.9,.95,.975))) %>% 
+#   'rownames<-' (c("0:2.5%", "1:5%","2:10%","3:50%","4:90%", "5:95%","6:97.5%")) %>% 
+#   rownames_to_column('quantiles') %>% 
+#   pivot_longer(cols=year1:year5) %>% 
+#   ggplot(aes(x=name, y=value, group=quantiles, colour=quantiles)) +
+#   geom_line() + 
+#   geom_point() + 
+#   scale_y_continuous(labels = scales::comma)
+# 
 
-as.data.frame(sims1$pnl) %>% 
-  summarise(across(year1:year5, quantile, 1-c(.025, .05,.1,.5,.9,.95,.975))) %>% 
-  'rownames<-' (c("0:2.5%", "1:5%","2:10%","3:50%","4:90%", "5:95%","6:97.5%")) %>% 
-  rownames_to_column('quantiles') %>% 
-  pivot_longer(cols=year1:year5) %>% 
-  ggplot(aes(x=name, y=value, group=quantiles, colour=quantiles)) +
-  geom_line() + 
-  geom_point() + 
-  scale_y_continuous(labels = scales::comma)
+s_years <- sims1$eoy_position
+ci = .9
+qq <- 1-c((1-ci)/2, .5, (1+ci)/2)
+q_labels <- scales::percent(c((1-ci)/2, .5, (1+ci)/2))
+
+
+label_dollar_custom <- scales::label_dollar(scale = 1e-6, suffix='mil')
+
+plot_df <- as.data.frame(s_years) %>% 
+    summarise(across(year1:year5, quantile, qq)) %>% 
+    'rownames<-' (q_labels) %>% 
+    rownames_to_column('quantiles') %>% 
+    pivot_longer(cols=year1:year5) 
+
+plot_df %>% filter(quantiles %in% c(q_labels[1],q_labels[3])) -> df_q
+plot_df %>% filter(quantiles %in% c(q_labels[2])) -> df_m
+
+
+df_q %>% 
+    ggplot(aes(x=name, y=value, group=quantiles), colour='blue') +
+    geom_line() + 
+    geom_point() + 
+    geom_line(data=df_m, aes(x=name, y=value)) +
+    scale_y_continuous(labels = label_dollar_custom) -> p1
+
+
+
+
+print(p1)
+
+print(p1+p2)
+p <- plot_yearly_lines(sims1$eoy_position)
+print(p)
+# as.data.frame(sims1$eoy_position) %>% 
+#   summarise(across(year1:year5, quantile, 1-c(.025, .05,.1,.5,.9,.95,.975))) %>% 
+#   'rownames<-' (c("0:2.5%", "1:5%","2:10%","3:50%","4:90%", "5:95%","6:97.5%")) %>% 
+#   rownames_to_column('quantiles') %>% 
+#   pivot_longer(cols=year1:year5) %>% 
+#   ggplot(aes(x=name, y=value, group=quantiles, colour=quantiles)) +
+#   geom_line() + 
+#   geom_point() + 
+#   scale_y_continuous(labels = scales::comma)
 
   print_quantiles('final position', sims1$final_position)
-  
   # rownames_to_column(as.character(c(.025, .05,.1,.5,.9,.95,.975)))
 
 

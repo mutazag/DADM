@@ -92,7 +92,7 @@ whatif <- function(year_court = 2,
     yearn_label = paste0('year',yearn)
     yearprev_label = paste0('year', yearn -1 )
 
-    s[['price']][[yearn_label]] <- ifelse(yearn >1, s$price$year1, 0) +
+    s[['price']][[yearn_label]] <- ifelse(rep(yearn >1, n_trials), s$price$year1, 0) +
       sim('price_change',yearn_label,n_trials,(yearn==1))
     print_quantiles(paste0('gold price ', yearn_label), s$price[[yearn_label]])
     # print(paste0('   year: ', yearn, ', price(90%) ', round(quantile(ecdf(s$price[[yearn_label]]), c(.9))[[1]],2)))
@@ -227,12 +227,12 @@ whatif <- function(year_court = 2,
   }
   sims <- append(sims, s)
   
-  # calculate final pnl 
+  # calculate yearly pnl -- not taking budget into the pnl yet
   s <- list()
   for (yearn in 1:5){
     yearn_label = paste0('year',yearn)
     yearprev_label = paste0('year', yearn -1 )
-    s[['pnl']][[yearn_label]] <-ifelse(yearn == 1, sims$budget,0) + 
+    s[['pnl']][[yearn_label]] <- #ifelse(yearn == 1, sims$budget,0) + 
       sims$claim_proceeds[[yearn_label]] + 
       sims$exploration$claim_pnl[[yearn_label]] 
     print_quantiles(paste0('full pnl ', yearn_label), s$pnl[[yearn_label]])
@@ -240,17 +240,67 @@ whatif <- function(year_court = 2,
   }
   sims <- append(sims, s)
   
+  # calcualate end of  year position 
+  s <- list() 
+  for (yearn in 1:5){
+    yearn_label = paste0('year',yearn)
+    yearprev_label = paste0('year', yearn -1 )
+    
+    s[['eoy_position']][[yearn_label]] <- 
+      ifelse(rep(yearn==1, n_trials), sims$budget, s[['eoy_position']][[yearprev_label]]) + 
+      sims$pnl[[yearn_label]]
+    print_quantiles( paste0('eoy ', yearn_label),s$eoy_position[[yearn_label]]) 
+  }
+  sims <- append(sims,s)
+  
   sims[['final_position']] <- (as.data.frame(sims$pnl) %>% rowwise() %>% 
     mutate(total = sum(c_across(year1:year5))) %>% select(total))[[1]]
+  sims$final_position = sims$final_position + sims$budget
   print_quantiles('**** final position ', sims$final_position)
-  print(paste0(' ***  final position (90%)', round(quantile(ecdf(sims$final_position), c(.1))[[1]])))
+  print(paste0(' ***  final position (95%)', round(quantile(ecdf(sims$final_position), c(.05))[[1]])))
 
   return(sims)
 }
 
 
+#### visualisations ####
+
+
+
+plot_yearly_lines <- function(s_years, ci= .9, title='Cumulative Earnings'){
+  
+  qq <- 1-c((1-ci)/2, .5, (1+ci)/2)
+  q_labels <- scales::percent(c((1-ci)/2, .5, (1+ci)/2))
+  ci_label <- scales::percent(ci)
+  
+  
+  label_dollar_custom <- scales::label_dollar(scale = 1e-6, suffix='mil')
+  
+  plot_df <- as.data.frame(s_years) %>% 
+    summarise(across(year1:year5, quantile, qq)) %>% 
+    'rownames<-' (q_labels) %>% 
+    rownames_to_column('quantiles') %>% 
+    pivot_longer(cols=year1:year5) 
+  
+  plot_df %>% filter(quantiles %in% c(q_labels[1],q_labels[3])) -> df_q
+  plot_df %>% filter(quantiles %in% c(q_labels[2])) -> df_m
+  
+  
+  df_q %>% 
+    ggplot(aes(x=name, y=value, group=quantiles)) +
+    geom_line(color='lightblue2', size=1) + 
+    geom_line(data=df_m, aes(x=name, y=value), color='lightblue4', size=1) +
+    scale_y_continuous(labels = label_dollar_custom,
+                       breaks = scales::pretty_breaks(n = 5)) +
+    labs(title=title, subtitle = paste0(ci_label, ' confidence')) +
+    theme_light() + 
+    theme(axis.title = element_blank()) -> p
+  
+  return(p)
+}
+
 #### testing ####
-tests < function(){
+tests <- function(){
   exp_plan <- data.frame( year = c(1,2,3,4,5),
                           teams = c(1,1,1,1,1))
   
@@ -279,8 +329,12 @@ tests < function(){
   s <- whatif(year_court = 1, exploration_plan = exp_plan)
   for (yearn in 1:5){
     yearn_label <- paste0('year',yearn)
-    print_quantiles(paste0('yearn pnl ', yearn_label), s$pnl[[yearn_label]])
+    print_quantiles(paste0('scenario whatif, eoy ', yearn_label), s$eoy_position[[yearn_label]])
   }
   print_quantiles('final position', s$final_position)
 
 }
+
+
+
+
