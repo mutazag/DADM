@@ -64,9 +64,9 @@ sim <- function(category='new_claim',
 print_quantiles <- function(label, series){ 
     fx <- ecdf(series)
     
-    qq <- round(quantile(fx, c(.05,.5,.95), type=7))
+    qq <- round(quantile(fx, c(.05,.5,.95), type=7)/1e+6, 2)
     
-    print(paste0('   ', label, ' 95% over: ', qq[[1]], ', 50% over: ', qq[[2]], ', 5% over: ', qq[[3]]))
+    print(paste0('   ', label, ' in $mil 95% over: ', qq[[1]], ', 50% over: ', qq[[2]], ', 5% over: ', qq[[3]]))
 }
 
 
@@ -265,7 +265,30 @@ whatif <- function(year_court = 2,
 
 #### visualisations ####
 
+plot_yearly_boxplots <- function(s_years, title='Yearly P&L', subtitle='', caption=''){
+  
+  
 
+  
+  label_dollar_custom <- scales::label_dollar(scale = 1e-6, suffix='mil')
+  
+  plot_df <- as.data.frame(s_years) %>% 
+    pivot_longer(cols=year1:year5) %>% 
+    group_by(name) %>% 
+    mutate(avg = ifelse(median(value)<0, 'b', 'a'))
+  
+  plot_df %>% ggplot() + 
+    geom_boxplot(aes(x=name, y=value, fill=avg), alpha=.5) +
+    scale_fill_manual(values=c( 'seagreen3', 'indianred1'))+ 
+    scale_y_continuous(labels = label_dollar_custom,
+                       breaks = scales::pretty_breaks(n = 5)) +
+    labs(title=title, subtitle = subtitle, caption = caption) +
+    theme_light() + 
+    theme(axis.title = element_blank(), 
+          legend.position = "none") -> p
+  
+  return(p)
+}
 
 plot_yearly_lines <- function(s_years, ci= .9, title='Cumulative Earnings'){
   
