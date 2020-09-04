@@ -279,9 +279,11 @@ plot_yearly_boxplots <- function(s_years, title='Yearly P&L', subtitle='', capti
   
   plot_df %>% ggplot() + 
     geom_boxplot(aes(x=name, y=value, fill=avg), alpha=.5) +
+    geom_hline(yintercept = 0, size=1,linetype ='dotted',  colour = "grey80") +
     scale_fill_manual(values=c( 'seagreen3', 'indianred1'))+ 
     scale_y_continuous(labels = label_dollar_custom,
-                       breaks = scales::pretty_breaks(n = 5)) +
+                       breaks = scales::pretty_breaks(n = 10), 
+                       limits = c(-5e+6, 35e+6)) +
     labs(title=title, subtitle = subtitle, caption = caption) +
     theme_light() + 
     theme(axis.title = element_blank(), 
@@ -311,10 +313,12 @@ plot_yearly_lines <- function(s_years, ci= .9, title='Cumulative Earnings'){
   
   df_q %>% 
     ggplot(aes(x=name, y=value, group=quantiles)) +
+    geom_hline(yintercept = 0, size=1, linetype ='dotted', colour = "grey80") +
     geom_line(color='lightblue2', size=1) + 
     geom_line(data=df_m, aes(x=name, y=value), color='lightblue4', size=1) +
     scale_y_continuous(labels = label_dollar_custom,
-                       breaks = scales::pretty_breaks(n = 5)) +
+                       breaks = scales::pretty_breaks(n = 10),
+                       limits = c(-5e+6, 35e+6)) +
     labs(title=title, subtitle = paste0(ci_label, ' confidence')) +
     theme_light() + 
     theme(axis.title = element_blank()) -> p

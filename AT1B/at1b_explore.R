@@ -22,7 +22,7 @@ plot_yearly_boxplots(sims1$exploration$claim_pnl, title = 'Future claims P&L', c
 print_quantiles('year1 position', sims1$eoy_position$year1)
 print_quantiles('year5 position', sims1$eoy_position$year5)
 print_quantiles('final position', sims1$final_position)
-  # rownames_to_column(as.character(c(.025, .05,.1,.5,.9,.95,.975)))
+
 
 
 
