@@ -1,3 +1,4 @@
+#### modeling code ####
 # AT2: Business Case Development
 # AI-Assisted Accelerated MRI 
 
@@ -8,10 +9,8 @@
 # Chris Garces: 12473310
 
 
-
 library(tidyverse)
 library(gridExtra)
-
 
 
 
@@ -121,7 +120,7 @@ plot_sim_values <- function(s){
 
 
 
-#### what if #### 
+#### simulation of stages #### 
 
 # this section includes the code for simulating the different business scenarios
 
@@ -193,6 +192,8 @@ sim_trials_cost <-function(n_trials=10000){
   }
 
 
+#### scenario whatif simulation ####
+
 whatif <- function(rnd_external = FALSE){ 
   n_trials = get_param('simulation', 'n_trials')
   # find when R&D will complete qtr numbers
@@ -215,8 +216,10 @@ whatif <- function(rnd_external = FALSE){
                            rep(0, n_trials ))
   
   }
+}
 
-#### testing #####
+  
+#### testing ####
 
 test <- function(){ 
   
@@ -231,4 +234,5 @@ test <- function(){
   sim(category = 'prod', 'cost_of_sales_increase_yoy', reps = TRUE)
   sim(category = 'prod', 'cost_of_sales_increase_yoy', reps = TRUE)
 }
+
 
