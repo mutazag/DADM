@@ -319,7 +319,98 @@ whatif <- function(rnd_external = FALSE){
   return(s)
 }
 
+
+
+#### visualisations ####
+
+
+
+plot_label_quantiles <-function (s, ci=.5){
   
+  qq <- 1-c((1-ci)/2, .5, (1+ci)/2)
+  q_labels <- scales::percent(c((1-ci)/2, .5, (1+ci)/2))
+  ci_label <- scales::percent(ci)
+  qq_ecdf <- round(quantile(ecdf(s), probs = qq, type=7)/1e3,2)
+  
+  s  <- paste0(q_labels[[2]], ' probability to exceed $',qq_ecdf[[2]],'mil\n', 
+               ci_label, ' of simulations are between ', qq_ecdf[[3]] , ' and ', 
+               qq_ecdf[[1]], ' million AUD' )
+  
+  return(s)
+}
+
+
+
+plot_qtrly_boxplots <- function(s, title='Quarterly P&L', subtitle='', caption=''){
+
+  label_dollar_custom <- scales::label_dollar(scale = 1e-6, suffix='mil')
+  
+  plot_df <- as.data.frame(s) %>% 
+    pivot_longer(cols=qtr01:qtr20) %>% 
+    group_by(name) %>% 
+    mutate(avg = ifelse(median(value)<0, 'b', 'a'))
+  
+  plot_df %>% ggplot() + 
+    geom_boxplot(aes(x=name, y=value, fill=avg), alpha=.5) +
+    geom_hline(yintercept = 0, size=1,linetype ='dotted',  colour = "grey80") +
+    scale_fill_manual(values=c( 'seagreen3', 'indianred1'))+ 
+    scale_y_continuous(labels = label_dollar_custom,
+                       breaks = scales::pretty_breaks(n = 10)) +
+    # , y    limits = c(-5e+6, 35e+6)
+    labs(title=title, subtitle = subtitle, caption = caption) +
+    theme_light() + 
+    theme(axis.title = element_blank(), 
+          legend.position = "none") -> p
+  
+  return(p)
+}
+
+
+
+
+
+plot_qtrly_lines <- function(s, 
+                              ci= .9, 
+                              title='Cumulative Earnings',
+                              subtitle='', 
+                              caption=''){
+  
+  qq <- 1-c((1-ci)/2, .5, (1+ci)/2)
+  q_labels <- scales::percent(c((1-ci)/2, .5, (1+ci)/2))
+  ci_label <- scales::percent(ci)
+  
+  
+  label_dollar_custom <- scales::label_dollar(scale = 1e-6, suffix='mil')
+  
+  plot_df <- as.data.frame(s) %>% 
+    summarise(across(qtr01:qtr20, quantile, qq)) %>% 
+    'rownames<-' (q_labels) %>% 
+    rownames_to_column('quantiles') %>% 
+    pivot_longer(cols=qtr01:qtr20) 
+  
+  plot_df %>% filter(quantiles %in% c(q_labels[1],q_labels[3])) -> df_q
+  plot_df %>% filter(quantiles %in% c(q_labels[2])) -> df_m
+  
+  
+  df_q %>% 
+    ggplot(aes(x=name, y=value, group=quantiles)) +
+    geom_hline(yintercept = 0, size=1, linetype ='dotted', colour = "grey80") +
+    geom_line(color='lightblue2', size=1) + 
+    geom_line(data=df_m, aes(x=name, y=value), color='lightblue4', size=1) +
+    scale_y_continuous(labels = label_dollar_custom,
+                       breaks = scales::pretty_breaks(n = 10)) +
+    labs(title=title, 
+         subtitle = subtitle, 
+         caption = caption) +
+    theme_light() + 
+    theme(axis.title = element_blank()) -> p
+  
+  return(p)
+}
+
+
+
+
 #### testing ####
 
 test <- function(){ 
