@@ -1,4 +1,5 @@
 cat,param,type,vmin,vml,vmax,uom,description
+simulation,n_trials,1-point,10000,0,0,count,number of simulation trials
 cost,cofounders,1-point,50000,0,0,AUD,quarterly fixed salaries for 5 cofounders
 cost,cloud,1-point,4264,0,0,AUD,quarterly cost of cloud services
 cost,hw_qtr1,3-point,1200,2500,4500,AUD,hardware cost in quarter 1 only 
@@ -15,8 +16,9 @@ trials,fda_inital_cost_1,1-point,11594,0,0,USD,cost of FDA cost year 1
 trials,fda_registration_fee_2,1-point,5546,0,0,USD,cost of FDA registration year 2
 trials,fda_inital_cost_2,1-point,12432,0,0,USD,cost of FDA cost year 1
 trials,ongoing_ml_eng,3-point,10000,15000,20000,AUD,external ml engineer on going cost with 1% equity
-trials,sw_engineer,3-point,8000,12000,18000,AUD,external sw engineer on going cost with 1% equity
+trials,ongoing_sw_engineer,3-point,8000,12000,18000,AUD,external sw engineer on going cost with 1% equity
 trials,cost_of_sales,3-point,20000,25000,40000,AUD,cost of sales during trials for biz dev
-prod,revenue,3-point,50000,250000,1000000,AUD,quartry sales revenue
-prod,cost_of_sales,1-point,20000,25000,40000,AUD,cost of sales during prod and sales
-prod,sales_growth_yoy,3-point,0.02,0.1,0.3,pct,percent growth of sales yoy 
+prod,revenue,3-point,80000,275000,455000,AUD,quarterly sales revenue
+prod,cost_of_sales,3-point,91250,173750,282750,AUD,quarterly cost of sales during prod and sales
+prod,sales_growth_yoy,3-point,-.1,.15,.55,pct,percent growth of sales yoy 
+prod,cost_of_sales_increase_yoy,1-point,.1,0,0,pct,percent increase in cost of sales yoy

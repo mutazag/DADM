@@ -50,11 +50,23 @@ sim <- function(category='trial',
                 parameter='fda_approval_time',
                 n_trials = 10000,
                 reps = FALSE){
+  # sim function will simulate a single variable using monte-carlo
+  # it is setup to accept category and parameter name to be loaded from 
+  # paramaters file
+  # the simulation will use inv triangle cdf if variable has a 3 point estimate
+  # else it will assume a bonomial simulation or just repeates the value for all 
+  # simulation trials 
+  # reps: FALSe and param is 1-point, will simulate a binomial
+  # reps: TRUE and param is 1-point, just repeat the value as is
+  #
+  # the result is  a vector of simulated values of length = number of trials 
   
   v <- get_param(category, parameter)
   
+  # initialise the simulated value to 0, unless param is a numeric (not 3-point)
   ret <- rep(ifelse(reps, v, 0), n_trials)
   
+  # if param is 3-point (dataframe), run simulation with inv_triangle_cdf
   if (is.data.frame(v)){
     ret <- inv_triangle_cdf(
       P = runif(n_trials),
@@ -63,14 +75,13 @@ sim <- function(category='trial',
       vmax = v$vmax
     )
   } else if (is.numeric(v) && !reps){
+    # else if param is numeric and not to be repeated, then simulate as a binomial
+    # in this case the param is meant to be a probability 
     ret <- rbinom(n=n_trials, size=1, prob=v)
   }
   
   return(ret)
 }
-
-
-
 
 
 print_quantiles <- function(label, series){ 
@@ -110,6 +121,45 @@ plot_sim_values <- function(s){
 
 
 
+#### what if #### 
+
+# this section includes the code for simulating the different business scenarios
+
+rnd_completion <- function(external_resources=FALSE){
+  
+  if (external_resources == TRUE){
+    print('rnd with external resources')
+    s <- sim(category = 'r_and_d', 'duration_with_external')
+  } else { 
+    print('internal rnd')
+    s <- sim(category = 'r_and_d', 'duration_internal_only')
+
+  }
+  
+  s <- round(s)
+  
+  return(s)
+}
+
+
+
+whatif <- function(rnd_external = FALSE){ 
+  n_trials = get_param('simulation', 'n_trials')
+  # find when R&D will complete qtr numbers
+  rnd_completes <- rnd_completion(rnd_external)
+  
+  # calculate rnd cost
+  for (qtr in 1:20){ 
+    
+    cost_cofounders <- sim(category = 'cost', parameter = 'cofounders', rep=TRUE)
+    cost_cloud <- sim(category = 'cost', parameter = 'cloud', rep=TRUE)
+    cost_hw <- ifelse(qtr == 1,1,0) *  sim(category = 'cost', parameter = 'hw_qtr1')
+    cost_logistics <- sim(category = 'cost', parameter = 'logistics')
+    cost_internal <- sim(category = 'rnd', )
+    }
+  
+  }
+
 #### testing #####
 
 test <- function(){ 
@@ -118,5 +168,11 @@ test <- function(){
   plot_sim_values(sim(category = 'trials', 'cost_of_sales'))
   plot_sim_values(sim(category = 'r_and_d', 'duration_internal_only'))
   plot_sim_values(sim(category = 'r_and_d', 'duration_with_external'))
+  
+  plot_sim_values(sim(category = 'prod', 'revenue'))
+  plot_sim_values(sim(category = 'prod', 'cost_of_sales'))
+  
+  sim(category = 'prod', 'cost_of_sales_increase_yoy', reps = TRUE)
+  sim(category = 'prod', 'cost_of_sales_increase_yoy', reps = TRUE)
 }
 
