@@ -236,6 +236,7 @@ sim_prod_and_sales <- function(trials_complete, n_trials=10000){
           sim('prod', 'revenue', n_trials) * (1+sim('prod','sales_growth_yoy',n_trials)),
           rep(0, n_trials=n_trials)) 
         
+        # need to add cost of rnd
         s[['cost_of_sales']][[qtr_label]] <- if_else(
           qtr > trials_complete,
           sim('prod', 'cost_of_sales', n_trials),
