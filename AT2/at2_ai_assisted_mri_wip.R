@@ -125,7 +125,7 @@ plot_sim_values <- function(s){
 
 # this section includes the code for simulating the different business scenarios
 
-rnd_completion <- function(external_resources=FALSE){
+sim_rnd_completion <- function(external_resources=FALSE){
   
   if (external_resources == TRUE){
     print('rnd with external resources')
@@ -141,22 +141,78 @@ rnd_completion <- function(external_resources=FALSE){
   return(s)
 }
 
+sim_trials_completion <- function(rnd_completes){
+  s <- round(sim('trials','fda_approval_time')) + rnd_completes
+  
+  return(s)
+}
+
+
+sim_rnd_cost <- function(qtr = 1, external_resources=FALSE, n_trials = 10000){
+  
+  
+  # first calc internal rnd cost
+  cost_cofounders <- sim(category = 'cost', parameter = 'cofounders', rep=TRUE)
+  cost_cloud <- sim(category = 'cost', parameter = 'cloud', rep=TRUE)
+  cost_hw <- ifelse(qtr == 1,1,0) *  sim(category = 'cost', parameter = 'hw_qtr1')
+  cost_logistics <- sim(category = 'cost', parameter = 'logistics')
+  
+  cost_internal <- cost_cofounders + cost_cloud + cost_hw + cost_logistics
+  
+  # then calculate external rnd costs 
+  if (external_resources==TRUE){
+    cost_ml_engineer <- sim(category = 'additional_resources', parameter = 'ml_engineer' )
+    cost_sw_engineer <- sim(category = 'additional_resources', parameter = 'sw_engineer' )
+    cost_sub_contract <- sim(category = 'additional_resources', parameter = 'sub_contract' )
+    
+    cost_external <- cost_ml_engineer + cost_sw_engineer
+  } else {
+    cost_external = rep(0, n_trials)
+  }
+  
+  # rnd cost is internal + external (if external is used)
+  s <- cost_internal + cost_external
+  
+  return(s)
+  
+}
+
+sim_trials_cost_ongoing <- function(n_trials=10000){
+  # calculate ongoing rnd cost in trials 
+  # trials,ongoing_ml_eng,3-point,10000,15000,20000,AUD,external ml engineer on going cost with 1% equity
+  # trials,ongoing_sw_engineer,3-point,8000,12000,18000,AUD,external sw engineer on going cost with 1% equity
+  s <- sim(category = 'trials', parameter = 'ongoing_ml_eng' ) + 
+    sim(category = 'trials', parameter = 'ongoing_sw_eng' ) 
+  return(s)
+  
+}
+
+sim_trials_cost <-function(n_trials=10000){ 
+  s <- sim_trials_cost_ongoing(n_trials) # + other FDA and biz dev costs
+  return(s)
+  }
 
 
 whatif <- function(rnd_external = FALSE){ 
   n_trials = get_param('simulation', 'n_trials')
   # find when R&D will complete qtr numbers
-  rnd_completes <- rnd_completion(rnd_external)
+  rnd_completes <- sim_rnd_completion(rnd_external)
+  trials_complete <- sim_trials_completion(rnd_completes) 
   
   # calculate rnd cost
   for (qtr in 1:20){ 
     
-    cost_cofounders <- sim(category = 'cost', parameter = 'cofounders', rep=TRUE)
-    cost_cloud <- sim(category = 'cost', parameter = 'cloud', rep=TRUE)
-    cost_hw <- ifelse(qtr == 1,1,0) *  sim(category = 'cost', parameter = 'hw_qtr1')
-    cost_logistics <- sim(category = 'cost', parameter = 'logistics')
-    cost_internal <- sim(category = 'rnd', )
-    }
+    
+    # if before rnd_completes, this is the cost of RND
+    cost_rnd <- if_else(qtr <= rnd_completes, 
+            sim_rnd_cost(qtr=qtr, external_resources=rnd_external, n_trials=n_trials), 
+            rep(0, n_trials=n_trials))
+  
+    
+    # if after rnd_completes and before end of trials 
+    cost_trials <- if_else((qtr > rnd_completes) & (qtr <= trials_complete),
+                           sim_trials_cost(n_trials=n_trials),
+                           rep(0, n_trials ))
   
   }
 
