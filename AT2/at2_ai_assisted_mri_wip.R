@@ -59,6 +59,7 @@ sim <- function(category='trial',
   # reps: TRUE and param is 1-point, just repeat the value as is
   #
   # the result is  a vector of simulated values of length = number of trials 
+
   
   v <- get_param(category, parameter)
   
@@ -124,15 +125,15 @@ plot_sim_values <- function(s){
 
 # this section includes the code for simulating the different business scenarios
 
-sim_rnd_completion <- function(external_resources=FALSE){
+sim_rnd_completion <- function(external_resources=FALSE, n_trials=10000){
   # return number of last quarter of R&D
   
   if (external_resources == TRUE){
     print('rnd with external resources')
-    s <- sim(category = 'r_and_d', 'duration_with_external')
+    s <- sim(category = 'r_and_d', 'duration_with_external', n_trials = n_trials)
   } else { 
     print('internal rnd')
-    s <- sim(category = 'r_and_d', 'duration_internal_only')
+    s <- sim(category = 'r_and_d', 'duration_internal_only', n_trials = n_trials)
 
   }
   
@@ -141,9 +142,9 @@ sim_rnd_completion <- function(external_resources=FALSE){
   return(s)
 }
 
-sim_trials_completion <- function(rnd_completes){
+sim_trials_completion <- function(rnd_completes, n_trials=10000){
   # return number of last quarter of trials 
-  s <- round(sim('trials','fda_approval_time')) + rnd_completes
+  s <- round(sim('trials','fda_approval_time',n_trials)) + rnd_completes
   
   return(s)
 }
@@ -151,18 +152,18 @@ sim_trials_completion <- function(rnd_completes){
 
 sim_rnd_cost <- function(qtr = 1, external_resources=FALSE, n_trials = 10000){
   # first calc internal rnd cost
-  cost_cofounders <- sim(category = 'cost', parameter = 'cofounders', rep=TRUE)
-  cost_cloud <- sim(category = 'cost', parameter = 'cloud', rep=TRUE)
-  cost_hw <- ifelse(qtr == 1,1,0) *  sim(category = 'cost', parameter = 'hw_qtr1')
-  cost_logistics <- sim(category = 'cost', parameter = 'logistics')
+  cost_cofounders <- sim(category = 'cost', parameter = 'cofounders', n_trials=n_trials,rep=TRUE)
+  cost_cloud <- sim(category = 'cost', parameter = 'cloud', n_trials=n_trials, rep=TRUE)
+  cost_hw <- ifelse(qtr == 1,1,0) *  sim(category = 'cost', parameter = 'hw_qtr1', n_trials=n_trials)
+  cost_logistics <- sim(category = 'cost', parameter = 'logistics', n_trials=n_trials)
   
   cost_internal <- cost_cofounders + cost_cloud + cost_hw + cost_logistics
   
   # then calculate external rnd costs 
   if (external_resources==TRUE){
-    cost_ml_engineer <- sim(category = 'additional_resources', parameter = 'ml_engineer' )
-    cost_sw_engineer <- sim(category = 'additional_resources', parameter = 'sw_engineer' )
-    cost_sub_contract <- sim(category = 'additional_resources', parameter = 'sub_contract' )
+    cost_ml_engineer <- sim(category = 'additional_resources', parameter = 'ml_engineer', n_trials=n_trials )
+    cost_sw_engineer <- sim(category = 'additional_resources', parameter = 'sw_engineer', n_trials=n_trials )
+    cost_sub_contract <- sim(category = 'additional_resources', parameter = 'sub_contract', n_trials=n_trials )
     
     cost_external <- cost_ml_engineer + cost_sw_engineer
   } else {
@@ -180,10 +181,10 @@ sim_trials_cost_ongoing <- function(n_trials=10000){
   # calculate ongoing rnd cost in trials 
   # trials,ongoing_ml_eng,3-point,10000,15000,20000,AUD,external ml engineer on going cost with 1% equity
   # trials,ongoing_sw_engineer,3-point,8000,12000,18000,AUD,external sw engineer on going cost with 1% equity
-  s <- sim_rnd_cost() + 
-    sim(category = 'trials', parameter = 'ongoing_ml_eng' ) + 
-    sim(category = 'trials', parameter = 'ongoing_sw_eng' ) + 
-    sim(category = 'trials', parameter = 'cost_of_sales' )
+  s <- sim_rnd_cost(n_trials=n_trials) + 
+    sim(category = 'trials', parameter = 'ongoing_ml_eng', n_trials=n_trials ) + 
+    sim(category = 'trials', parameter = 'ongoing_sw_eng', n_trials=n_trials ) + 
+    sim(category = 'trials', parameter = 'cost_of_sales', n_trials=n_trials )
   return(s)
   
 }
@@ -196,8 +197,10 @@ sim_trials_cost <-function(qtr, rnd_completes, trials_complete, n_trials=10000){
                          floor((qtr - rnd_completes - 1)/4)+1,
                          rep(0, n_trials ))
   
-  fda_year1 <- sim('trials','fda_inital_cost_1', reps = TRUE) + sim('trials','fda_registration_fee_1', reps = TRUE)
-  fda_year2 <- sim('trials','fda_inital_cost_2', reps = TRUE) + sim('trials','fda_registration_fee_2', reps = TRUE)
+  fda_year1 <- sim('trials','fda_inital_cost_1',n_trials=n_trials, reps = TRUE) + 
+    sim('trials','fda_registration_fee_1',n_trials=n_trials, reps = TRUE)
+  fda_year2 <- sim('trials','fda_inital_cost_2',n_trials=n_trials, reps = TRUE) + 
+    sim('trials','fda_registration_fee_2',n_trials=n_trials, reps = TRUE)
   fda_cost <- if_else( trials_year == 0, 
                        rep(0,n_trials), 
                        if_else(trials_year == 1, 
@@ -216,26 +219,37 @@ sim_trials_cost <-function(qtr, rnd_completes, trials_complete, n_trials=10000){
 
 whatif <- function(rnd_external = FALSE){ 
   n_trials = get_param('simulation', 'n_trials')
+  n_trials=10
+  
   # find when R&D will complete qtr numbers
-  rnd_completes <- sim_rnd_completion(rnd_external)
-  trials_complete <- sim_trials_completion(rnd_completes) 
+  rnd_completes <- sim_rnd_completion(rnd_external,n_trials=n_trials)
+  trials_complete <- sim_trials_completion(rnd_completes,n_trials=n_trials) 
+  
+  s <- list() 
+  s[['rnd_completes']] <- rnd_completes
+  s[['trials_complete']] <- trials_complete
   
   # calculate rnd cost
   for (qtr in 1:20){ 
     
+    qtr_label = sprintf('qtr%02d', qtr)
+    qtr_prev_label = sprintf('qtr%02d', qtr - 1)
     
     # if before rnd_completes, this is the cost of RND
     cost_rnd <- if_else(qtr <= rnd_completes, 
             sim_rnd_cost(qtr=qtr, external_resources=rnd_external, n_trials=n_trials), 
             rep(0, n_trials=n_trials))
   
+    s[['cost_rnd']][[qtr_label]] <- cost_rnd
     
     # cost of trials = ongoing costs for founds and rnd plus engineering plus FDA 
     # conditioned on qtr is in trial period  
     cost_trials <- sim_trials_cost(qtr,rnd_completes,trials_complete,n_trials)
+    
+    s[['cost_trials']][[qtr_label]] <- cost_trials
 
   }
-})
+}
 
   
 #### testing ####
