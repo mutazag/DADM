@@ -222,12 +222,15 @@ sim_prod_and_sales <- function(trials_complete, n_trials=10000){
   
   s <- list()
   for (yearn in 1:5){
+    
     year_label = sprintf('year%02d', yearn)
     year_prev_label = sprintf('year%02d', yearn - 1)
     cost_of_sales_increase_yoy <- get_param('prod','cost_of_sales_increase_yoy')
     
     if (yearn == 1){
+      
       for (qtr in 1:4){
+        
         qtr_label = sprintf('qtr%02d', qtr)
         qtr_prev_label = sprintf('qtr%02d', qtr - 1)
         
@@ -244,25 +247,31 @@ sim_prod_and_sales <- function(trials_complete, n_trials=10000){
       }
     }
     
+    
+    
     if (yearn > 1){
+      
       q_start = (yearn * 4) - 3
       q_end = (yearn * 4)
+      
       for (qtr in q_start:q_end){
+        
         qtr_label = sprintf('qtr%02d', qtr)
         qtr_yoy_prev_label = sprintf('qtr%02d', qtr - 4)
         
         s[['revenue']][[qtr_label]] <- if_else(
           qtr <= trials_complete, rep(0, n_trials=n_trials) , 
+          sim_rnd_cost(n_trials) + 
           if_else(qtr <= trials_complete + 4, 
                   sim('prod', 'revenue', n_trials) * (1+sim('prod','sales_growth_yoy',n_trials)),
                   s[['revenue']][[qtr_yoy_prev_label]] * (1 + sim('prod','sales_growth_yoy',n_trials))))
         
         s[['cost_of_sales']][[qtr_label]] <- if_else(
-          qtr <= trials_complete, rep(0, n_trials=n_trials) , 
+          qtr <= trials_complete, rep(0, n_trials=n_trials), 
+          sim_rnd_cost(n_trials) +
           if_else(qtr <= trials_complete + 4, 
                   sim('prod', 'cost_of_sales', n_trials) * (1+cost_of_sales_increase_yoy),
                   s[['cost_of_sales']][[qtr_yoy_prev_label]] * (1 + cost_of_sales_increase_yoy)))
-        
       }
     }
     
