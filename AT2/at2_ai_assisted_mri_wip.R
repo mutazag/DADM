@@ -28,7 +28,7 @@ inv_triangle_cdf <- function (P, vmin, vml, vmax){
 }
 
 
-get_param <- function(category='trial', parameter='fda_approval_time', param_file = './parameters.csv'){
+get_param <- function(category='trials', parameter='fda_approval_time', param_file = './parameters.csv'){
   if (!exists('sim_params')){
     print('loading sim params')
     sp <- read.csv(param_file,stringsAsFactors = FALSE)
@@ -86,10 +86,9 @@ plot_sim_values <- function(s){
   qq = quantile(ecdf(s),c(0.05,0.5,0.9,.95,1),type=7)
   Fx <- ecdf(s)
   hist(s, breaks=50, probability = TRUE, 
-       main = "Project Duration PDF", xlab="estimated duration",
-       xlim=c(19,40))
+       main = "Histogram", xlab="estimated value")
   lines(density(s), lwd=2)
-  plot(ecdf(s), main = "Project Duration CDF",ylab = "likelihood", xlab="estimated duration")
+  plot(ecdf(s), main = "CDF",ylab = "likelihood", xlab="estimated value")
   x = qq['95%']
   y = .95
   abline(v=x, h=y, col = "lightgray")      
@@ -107,3 +106,17 @@ plot_sim_values <- function(s){
   text(x=x,y=y, labels = paste('(',round(x,2),',',round(y,2)*100,'%)'))
   
 }
+
+
+
+
+#### testing #####
+
+test <- function(){ 
+  
+  plot_sim_values(sim(category = 'trials', 'fda_approval_time_days'))
+  plot_sim_values(sim(category = 'trials', 'cost_of_sales'))
+  plot_sim_values(sim(category = 'r_and_d', 'duration_internal_only'))
+  plot_sim_values(sim(category = 'r_and_d', 'duration_with_external'))
+}
+
