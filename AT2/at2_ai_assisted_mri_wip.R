@@ -125,6 +125,7 @@ plot_sim_values <- function(s){
 # this section includes the code for simulating the different business scenarios
 
 sim_rnd_completion <- function(external_resources=FALSE){
+  # return number of last quarter of R&D
   
   if (external_resources == TRUE){
     print('rnd with external resources')
@@ -141,6 +142,7 @@ sim_rnd_completion <- function(external_resources=FALSE){
 }
 
 sim_trials_completion <- function(rnd_completes){
+  # return number of last quarter of trials 
   s <- round(sim('trials','fda_approval_time')) + rnd_completes
   
   return(s)
@@ -148,8 +150,6 @@ sim_trials_completion <- function(rnd_completes){
 
 
 sim_rnd_cost <- function(qtr = 1, external_resources=FALSE, n_trials = 10000){
-  
-  
   # first calc internal rnd cost
   cost_cofounders <- sim(category = 'cost', parameter = 'cofounders', rep=TRUE)
   cost_cloud <- sim(category = 'cost', parameter = 'cloud', rep=TRUE)
@@ -180,14 +180,34 @@ sim_trials_cost_ongoing <- function(n_trials=10000){
   # calculate ongoing rnd cost in trials 
   # trials,ongoing_ml_eng,3-point,10000,15000,20000,AUD,external ml engineer on going cost with 1% equity
   # trials,ongoing_sw_engineer,3-point,8000,12000,18000,AUD,external sw engineer on going cost with 1% equity
-  s <- sim(category = 'trials', parameter = 'ongoing_ml_eng' ) + 
-    sim(category = 'trials', parameter = 'ongoing_sw_eng' ) 
+  s <- sim_rnd_cost() + 
+    sim(category = 'trials', parameter = 'ongoing_ml_eng' ) + 
+    sim(category = 'trials', parameter = 'ongoing_sw_eng' ) + 
+    sim(category = 'trials', parameter = 'cost_of_sales' )
   return(s)
   
 }
 
-sim_trials_cost <-function(n_trials=10000){ 
-  s <- sim_trials_cost_ongoing(n_trials) # + other FDA and biz dev costs
+sim_trials_cost <-function(qtr, rnd_completes, trials_complete, n_trials=10000){ 
+  
+
+  # fda cost during trials
+  trials_year <- if_else((qtr > rnd_completes),
+                         floor((qtr - rnd_completes - 1)/4)+1,
+                         rep(0, n_trials ))
+  
+  fda_year1 <- sim('trials','fda_inital_cost_1', reps = TRUE) + sim('trials','fda_registration_fee_1', reps = TRUE)
+  fda_year2 <- sim('trials','fda_inital_cost_2', reps = TRUE) + sim('trials','fda_registration_fee_2', reps = TRUE)
+  fda_cost <- if_else( trials_year == 0, 
+                       rep(0,n_trials), 
+                       if_else(trials_year == 1, 
+                               fda_year1, fda_year2))
+  
+  # ongoing rnd cost during trials period + fda_cost for same period
+  s <- if_else((qtr > rnd_completes) & (qtr <= trials_complete),
+               sim_trials_cost_ongoing(n_trials=n_trials) + fda_cost,
+               rep(0, n_trials ))
+  
   return(s)
   }
 
@@ -210,13 +230,12 @@ whatif <- function(rnd_external = FALSE){
             rep(0, n_trials=n_trials))
   
     
-    # if after rnd_completes and before end of trials 
-    cost_trials <- if_else((qtr > rnd_completes) & (qtr <= trials_complete),
-                           sim_trials_cost(n_trials=n_trials),
-                           rep(0, n_trials ))
-  
+    # cost of trials = ongoing costs for founds and rnd plus engineering plus FDA 
+    # conditioned on qtr is in trial period  
+    cost_trials <- sim_trials_cost(qtr,rnd_completes,trials_complete,n_trials)
+
   }
-}
+})
 
   
 #### testing ####
