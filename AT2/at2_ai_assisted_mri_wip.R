@@ -315,6 +315,46 @@ calc_pnl <- function(scenario) {
   
 }
 
+
+
+calc_period_position <- function(scenario){
+  
+  
+  s <- list()
+  for (qtr in 1:20){
+    qtr_label = sprintf('qtr%02d', qtr)
+    qtr_prev_label = sprintf('qtr%02d', qtr - 1)
+    
+    if (qtr==1){
+      s[['qtrly']][[qtr_label]] <- scenario$investment + scenario$pnl$qtrly[[qtr_label]]
+    } else{
+      s[['qtrly']][[qtr_label]] <- s$qtrly[[qtr_prev_label]] + scenario$pnl$qtrly[[qtr_label]]
+    }
+    
+  }
+  
+  for (yearn in 1:5) {
+    year_label = sprintf('year%02d', yearn)
+    year_prev_label = sprintf('year%02d', yearn - 1)
+    
+    if (yearn == 1) {
+      s[['yearly']][[year_label]] <-
+        scenario$investment + scenario$pnl$yearly[[year_label]]
+    } else {
+      s[['yearly']][[year_label]] <-
+        s$yearly[[year_prev_label]] + scenario$pnl$yearly[[year_label]]
+    }
+    
+  }
+  
+  s[['final']] <- (as.data.frame(scenario$pnl$yearly) %>% rowwise() %>% 
+                     mutate(total = sum(c_across(everything()))) %>% select(total))[[1]]
+  
+  
+  s$final = s$final + scenario$investment
+  return(s)
+  
+}
 #### scenario whatif simulation ####
 
 whatif <- function(rnd_external = FALSE){ 
@@ -357,6 +397,9 @@ whatif <- function(rnd_external = FALSE){
   # calc pnl
   s[['pnl']] <- calc_pnl(s)
   
+  # calc  position by period and final position
+  s[['position']] <- calc_period_position(s)
+  
   return(s)
 }
 
@@ -371,13 +414,13 @@ plot_label_quantiles <-function (s, ci=.5){
   qq <- 1-c((1-ci)/2, .5, (1+ci)/2)
   q_labels <- scales::percent(c((1-ci)/2, .5, (1+ci)/2))
   ci_label <- scales::percent(ci)
-  qq_ecdf <- round(quantile(ecdf(s), probs = qq, type=7)/1e3,2)
+  qq_ecdf <- round(quantile(ecdf(s), probs = qq, type=7)/1e6,2)
   
-  s  <- paste0(q_labels[[2]], ' probability to exceed $',qq_ecdf[[2]],'mil\n', 
+  s_label  <- paste0(q_labels[[2]], ' probability to exceed $',qq_ecdf[[2]],'mil\n', 
                ci_label, ' of simulations are between ', qq_ecdf[[3]] , ' and ', 
                qq_ecdf[[1]], ' million AUD' )
   
-  return(s)
+  return(s_label)
 }
 
 
@@ -466,8 +509,21 @@ test <- function(){
   # 
   # sim(category = 'prod', 'cost_of_sales_increase_yoy', reps = TRUE)
   # sim(category = 'prod', 'cost_of_sales_increase_yoy', reps = TRUE)
-  
+  get_param()
   scenario1 <- whatif()
+  # plot_label_quantiles(scenario1$position$final, ci=.9)
+  plot_periods_lines(scenario1$position$yearly, ci=.9, 
+                     title = 'Financial Outlook',
+                     subtitle = 'all internal development',
+                     caption = plot_label_quantiles(scenario1$position$final, ci=.9))
+  
+  scenario2 <- whatif(rnd_external = TRUE)
+  # plot_label_quantiles(scenario2$position$final, ci=.9)
+  plot_periods_lines(scenario2$position$yearly, ci=.9, 
+                     title = 'Financial Outlook',
+                     subtitle = 'with external development',
+                     caption = plot_label_quantiles(scenario2$position$final, ci=.9))
+  
 }
 
 
