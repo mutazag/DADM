@@ -1,5 +1,6 @@
 cat,param,type,vmin,vml,vmax,uom,description
 simulation,n_trials,1-point,10000,0,0,count,number of simulation trials
+fund,invest,1-point,500000,0,0,AUD,initial investment qtr1
 cost,cofounders,1-point,50000,0,0,AUD,quarterly fixed salaries for 5 cofounders
 cost,cloud,1-point,4264,0,0,AUD,quarterly cost of cloud services
 cost,hw_qtr1,3-point,1200,2500,4500,AUD,hardware cost in quarter 1 only 
