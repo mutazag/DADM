@@ -279,6 +279,42 @@ sim_prod_and_sales <- function(trials_complete, n_trials=10000){
   return(s)
 }
 
+
+#### summarise and aggregate ####
+
+calc_pnl <- function(scenario) {
+  s <- list()
+  
+  for (yearn in 1:5) {
+    year_label = sprintf('year%02d', yearn)
+    year_prev_label = sprintf('year%02d', yearn - 1)
+    
+    q_start = (yearn * 4) - 3
+    q_end = (yearn * 4)
+    
+    qs <- list()
+    for (qtr in q_start:q_end) {
+      qtr_label = sprintf('qtr%02d', qtr)
+      qtr_prev_label = sprintf('qtr%02d', qtr - 1)
+      
+      print(paste(qtr, yearn))
+      qtr_pnl <- scenario$sales$revenue[[qtr_label]]  -
+        (scenario$cost_rnd[[qtr_label]] +
+           scenario$cost_trials[[qtr_label]] +
+           scenario$sales$cost_of_sales[[qtr_label]])
+      
+      qs[[qtr_label]] <- qtr_pnl
+      s[['qtrly']][[qtr_label]] <- qtr_pnl
+    }
+    
+    yr_pnl <- (as.data.frame(qs) %>% rowwise() %>% mutate(year_pnl = sum(c_across())) %>% select(year_pnl))[[1]]
+    s[['yearly']][[year_label]] <- yr_pnl
+  }
+  
+  return(s)
+  
+}
+
 #### scenario whatif simulation ####
 
 whatif <- function(rnd_external = FALSE){ 
@@ -289,6 +325,8 @@ whatif <- function(rnd_external = FALSE){
   trials_complete <- sim_trials_completion(rnd_completes,n_trials=n_trials) 
   
   s <- list() 
+  
+  s[['investment']] <- sim('fund', 'invest', n_trials = n_trials, reps = TRUE)
   s[['rnd_completes']] <- rnd_completes
   s[['trials_complete']] <- trials_complete
   
@@ -315,6 +353,9 @@ whatif <- function(rnd_external = FALSE){
   
   # prod and sales
   s[['sales']] <- sim_prod_and_sales(trials_complete)
+  
+  # calc pnl
+  s[['pnl']] <- calc_pnl(s)
   
   return(s)
 }
