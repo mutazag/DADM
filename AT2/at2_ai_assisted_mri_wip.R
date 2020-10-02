@@ -516,14 +516,32 @@ test <- function(){
                      title = 'Financial Outlook',
                      subtitle = 'all internal development',
                      caption = plot_label_quantiles(scenario1$position$final, ci=.9))
+  plot_periods_lines(scenario1$position$qtrly, ci=.5,
+                        title = 'Quarterly for simulated scenario', 
+                        subtitle = 'all internal development',
+                        caption = plot_label_quantiles(scenario1$position$final, ci=.9))
+  plot_periods_boxplots(scenario1$pnl$qtrly,
+                     title = 'P&Ls for Quarterly periods', 
+                     subtitle = 'all internal development',
+                     caption = 'initial investment is not reflected')
   
   scenario2 <- whatif(rnd_external = TRUE)
   # plot_label_quantiles(scenario2$position$final, ci=.9)
-  plot_periods_lines(scenario2$position$yearly, ci=.9, 
+  plot_periods_lines(scenario2$position$yearly, ci=.8, 
                      title = 'Financial Outlook',
                      subtitle = 'with external development',
-                     caption = plot_label_quantiles(scenario2$position$final, ci=.9))
+                     caption = paste('by year 3:', plot_label_quantiles(scenario2$position$yearly$year03, ci=.5)))
+  plot_label_quantiles(scenario2$position$final, ci=.5)
   
+  plot_periods_lines(scenario2$position$qtrly, ci=.9,
+                        title = 'Quarterly for simulated scenario', 
+                        subtitle = 'with external development',
+                        caption = plot_label_quantiles(scenario2$position$final, ci=.9))
+  plot_periods_boxplots(scenario2$pnl$qtrly,
+                        title = 'P&Ls for Quarterly periods', 
+                        subtitle = 'with external development',
+                        caption = 'initial investment is not reflected')
+    
 }
 
 
