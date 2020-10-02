@@ -382,12 +382,12 @@ plot_label_quantiles <-function (s, ci=.5){
 
 
 
-plot_qtrly_boxplots <- function(s, title='Quarterly P&L', subtitle='', caption=''){
+plot_periods_boxplots <- function(s, title='Quarterly P&L', subtitle='', caption=''){
 
   label_dollar_custom <- scales::label_dollar(scale = 1e-6, suffix='mil')
   
   plot_df <- as.data.frame(s) %>% 
-    pivot_longer(cols=qtr01:qtr20) %>% 
+    pivot_longer(cols=everything()) %>% 
     group_by(name) %>% 
     mutate(avg = ifelse(median(value)<0, 'b', 'a'))
   
@@ -410,7 +410,7 @@ plot_qtrly_boxplots <- function(s, title='Quarterly P&L', subtitle='', caption='
 
 
 
-plot_qtrly_lines <- function(s, 
+plot_periods_lines <- function(s, 
                               ci= .9, 
                               title='Cumulative Earnings',
                               subtitle='', 
@@ -424,10 +424,10 @@ plot_qtrly_lines <- function(s,
   label_dollar_custom <- scales::label_dollar(scale = 1e-6, suffix='mil')
   
   plot_df <- as.data.frame(s) %>% 
-    summarise(across(qtr01:qtr20, quantile, qq)) %>% 
+    summarise(across(everything(), quantile, qq)) %>% 
     'rownames<-' (q_labels) %>% 
     rownames_to_column('quantiles') %>% 
-    pivot_longer(cols=qtr01:qtr20) 
+    pivot_longer(cols=-c('quantiles')) 
   
   plot_df %>% filter(quantiles %in% c(q_labels[1],q_labels[3])) -> df_q
   plot_df %>% filter(quantiles %in% c(q_labels[2])) -> df_m
